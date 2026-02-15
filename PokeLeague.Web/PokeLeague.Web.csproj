@@ -6,4 +6,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="AutoMapper" Version="16.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PokeLeague.Application\PokeLeague.Application.csproj" />
+    <ProjectReference Include="..\PokeLeague.Infraestructure\PokeLeague.Infraestructure.csproj" />
+  </ItemGroup>
+
 </Project>

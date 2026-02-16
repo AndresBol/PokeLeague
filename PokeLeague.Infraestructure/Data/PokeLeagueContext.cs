@@ -40,7 +40,7 @@ public partial class PokeLeagueContext : DbContext
     {
         modelBuilder.Entity<Auction>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__auction__3213E83F125DC2B3");
+            entity.HasKey(e => e.Id).HasName("PK__auction__3213E83F8085A0C8");
 
             entity.ToTable("auction");
 
@@ -83,7 +83,7 @@ public partial class PokeLeagueContext : DbContext
 
         modelBuilder.Entity<AuctionBid>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__auction___3213E83F81FE3EF3");
+            entity.HasKey(e => e.Id).HasName("PK__auction___3213E83FB182273A");
 
             entity.ToTable("auction_bid");
 
@@ -117,7 +117,7 @@ public partial class PokeLeagueContext : DbContext
 
         modelBuilder.Entity<Card>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__card__3213E83F44B11CD3");
+            entity.HasKey(e => e.Id).HasName("PK__card__3213E83F70B06018");
 
             entity.ToTable("card");
 
@@ -179,7 +179,7 @@ public partial class PokeLeagueContext : DbContext
 
         modelBuilder.Entity<Category>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__category__3213E83F39D71683");
+            entity.HasKey(e => e.Id).HasName("PK__category__3213E83F2A56121C");
 
             entity.ToTable("category");
 
@@ -196,7 +196,7 @@ public partial class PokeLeagueContext : DbContext
 
         modelBuilder.Entity<CategoryCard>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__category__3213E83F7B6E166A");
+            entity.HasKey(e => e.Id).HasName("PK__category__3213E83F0E00C653");
 
             entity.ToTable("category_card");
 
@@ -226,7 +226,7 @@ public partial class PokeLeagueContext : DbContext
 
         modelBuilder.Entity<Image>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__image__3213E83F8143A318");
+            entity.HasKey(e => e.Id).HasName("PK__image__3213E83F8EECDE0C");
 
             entity.ToTable("image");
 
@@ -234,9 +234,7 @@ public partial class PokeLeagueContext : DbContext
 
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.CardId).HasColumnName("card_id");
-            entity.Property(e => e.ImageUrl)
-                .HasMaxLength(2048)
-                .HasColumnName("image_url");
+            entity.Property(e => e.ImageData).HasColumnName("image_data");
             entity.Property(e => e.IsActive)
                 .HasDefaultValue(true)
                 .HasColumnName("is_active");
@@ -267,7 +265,7 @@ public partial class PokeLeagueContext : DbContext
 
         modelBuilder.Entity<PurchaseOrder>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__purchase__3213E83F19934D27");
+            entity.HasKey(e => e.Id).HasName("PK__purchase__3213E83F8818E2AD");
 
             entity.ToTable("purchase_order");
 
@@ -316,7 +314,7 @@ public partial class PokeLeagueContext : DbContext
 
         modelBuilder.Entity<Role>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__role__3213E83FF8FFEC1C");
+            entity.HasKey(e => e.Id).HasName("PK__role__3213E83F56FDFDD2");
 
             entity.ToTable("role");
 
@@ -349,7 +347,7 @@ public partial class PokeLeagueContext : DbContext
 
         modelBuilder.Entity<User>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__user__3213E83F655A4D39");
+            entity.HasKey(e => e.Id).HasName("PK__user__3213E83F28804C88");
 
             entity.ToTable("user");
 

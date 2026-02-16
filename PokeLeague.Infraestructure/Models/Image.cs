@@ -9,7 +9,7 @@ public partial class Image
 
     public int CardId { get; set; }
 
-    public string ImageUrl { get; set; } = null!;
+    public byte[] ImageData { get; set; } = null!;
 
     public bool IsActive { get; set; }
 

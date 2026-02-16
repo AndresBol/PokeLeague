@@ -14,11 +14,4 @@
     <ProjectReference Include="..\PokeLeague.Infraestructure\PokeLeague.Infraestructure.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="DTOs\" />
-    <Folder Include="Profiles\" />
-    <Folder Include="Services\Interfaces\" />
-    <Folder Include="Services\Implementations\" />
-  </ItemGroup>
-
 </Project>

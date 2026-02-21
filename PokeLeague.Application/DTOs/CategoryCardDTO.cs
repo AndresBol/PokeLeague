@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,10 +6,12 @@ using System.Threading.Tasks;
 
 namespace PokeLeague.Application.DTOs
 {
-    public record RoleDTO
+    public record CategoryCardDTO
     {
         public int Id { get; set; }
-        public string Name { get; set; } = string.Empty;
+        public int CardId { get; set; }
+        public int CategoryId { get; set; }
         public bool IsActive { get; set; }
+        public CategoryDTO Category { get; set; } = new CategoryDTO();
     }
 }

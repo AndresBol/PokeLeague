@@ -18,9 +18,11 @@ builder.Services.AddControllersWithViews();
 
 //*** Repositories
 builder.Services.AddTransient<IRepositoryRole, RepositoryRole>();
+builder.Services.AddTransient<IRepositoryUser, RepositoryUser>();
 
 //*** Services
 builder.Services.AddTransient<IServiceRole, ServiceRole>();
+builder.Services.AddTransient<IServiceUser, ServiceUser>();
 
 // =====================
 // Configurar AutoMapper
@@ -29,6 +31,7 @@ builder.Services.AddAutoMapper(config =>
 {
     //*** Profiles
     config.AddProfile<RoleProfile>();
+    config.AddProfile<UserProfile>();
 });
 
 // ==============================

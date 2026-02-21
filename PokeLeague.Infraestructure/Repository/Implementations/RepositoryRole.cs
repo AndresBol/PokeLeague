@@ -50,6 +50,7 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
             var roles = await _context.Set<Role>()
                 .AsNoTracking()
                 .Where(r => r.IsActive)
+                .OrderBy(r => r.Id)
                 .ToListAsync();
             return roles!;
         }

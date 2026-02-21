@@ -1,16 +1,16 @@
-﻿using AutoMapper;
+using AutoMapper;
 using PokeLeague.Application.DTOs;
 using PokeLeague.Infraestructure.Models;
 
 namespace PokeLeague.Application.Profiles
 {
-    public class RoleProfile : Profile
+    public class CategoryProfile : Profile
     {
-        public RoleProfile()
+        public CategoryProfile()
         {
-            CreateMap<RoleDTO, Role>().ReverseMap();
+            CreateMap<CategoryDTO, Category>().ReverseMap();
 
-            CreateMap<RoleDTO, Role>()
+            CreateMap<CategoryDTO, Category>()
                 .ForMember(dest => dest.Id, orig => orig.MapFrom(o => o.Id))
                 .ForMember(dest => dest.Name, orig => orig.MapFrom(o => o.Name))
                 .ForMember(dest => dest.IsActive, orig => orig.MapFrom(o => o.IsActive));

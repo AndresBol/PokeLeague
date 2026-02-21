@@ -16,9 +16,5 @@ namespace PokeLeague.Application.DTOs
         public DateOnly SignupDate { get; set; }
         public bool IsActive { get; set; }
         public RoleDTO Role { get; set; } = new RoleDTO();
-        public ICollection<CardDTO> Card { get; set; } = new List<CardDTO>();
-        public ICollection<AuctionDTO> Auction { get; set; } = new List<AuctionDTO>();
-        public ICollection<AuctionBidDTO> AuctionBid { get; set; } = new List<AuctionBidDTO>();
-        public ICollection<PurchaseOrderDTO> PurchaseOrder { get; set; } = new List<PurchaseOrderDTO>();
     }
 }

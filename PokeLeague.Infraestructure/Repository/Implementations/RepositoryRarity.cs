@@ -80,7 +80,7 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
             catch (Exception ex)
             {
                 await _context.Database.RollbackTransactionAsync();
-                throw new Exception($"Error updating user: {ex.Message}");
+                throw new Exception($"Error updating rarity: {ex.Message}");
             }
         }
 

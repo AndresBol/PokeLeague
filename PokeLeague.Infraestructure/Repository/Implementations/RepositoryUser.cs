@@ -41,7 +41,7 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
         {
             var user = await _context.Set<User>()
                 .AsNoTracking()
-                .Include(u => u.RoleId)
+                .Include(u => u.Role)
                 .FirstOrDefaultAsync(u => u.Id == id && u.IsActive);
             return user!;
         }

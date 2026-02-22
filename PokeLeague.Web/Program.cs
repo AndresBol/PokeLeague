@@ -19,10 +19,30 @@ builder.Services.AddControllersWithViews();
 //*** Repositories
 builder.Services.AddTransient<IRepositoryRole, RepositoryRole>();
 builder.Services.AddTransient<IRepositoryUser, RepositoryUser>();
+builder.Services.AddTransient<IRepositoryRarity, RepositoryRarity>();
+builder.Services.AddTransient<IRepositoryAuction, RepositoryAuction>();
+builder.Services.AddTransient<IRepositoryAuctionBid, RepositoryAuctionBid>();
+builder.Services.AddTransient<IRepositoryCard, RepositoryCard>();
+builder.Services.AddTransient<IRepositoryCategory, RepositoryCategory>();
+builder.Services.AddTransient<IRepositoryCategoryCard, RepositoryCategoryCard>();
+builder.Services.AddTransient<IRepositoryImage, RepositoryImage>();
+builder.Services.AddTransient<IRepositoryLanguage, RepositoryLanguage>();
+builder.Services.AddTransient<IRepositoryPurchaseOrder, RepositoryPurchaseOrder>();
+builder.Services.AddTransient<IRepositorySet, RepositorySet>();
 
 //*** Services
 builder.Services.AddTransient<IServiceRole, ServiceRole>();
 builder.Services.AddTransient<IServiceUser, ServiceUser>();
+builder.Services.AddTransient<IServiceRarity, ServiceRarity>();
+builder.Services.AddTransient<IServiceAuction, ServiceAuction>();
+builder.Services.AddTransient<IServiceAuctionBid, ServiceAuctionBid>();
+builder.Services.AddTransient<IServiceCard, ServiceCard>();
+builder.Services.AddTransient<IServiceCategory, ServiceCategory>();
+builder.Services.AddTransient<IServiceCategoryCard, ServiceCategoryCard>();
+builder.Services.AddTransient<IServiceImage, ServiceImage>();
+builder.Services.AddTransient<IServiceLanguage, ServiceLanguage>();
+builder.Services.AddTransient<IServicePurchaseOrder, ServicePurchaseOrder>();
+builder.Services.AddTransient<IServiceSet, ServiceSet>();
 
 // =====================
 // Configurar AutoMapper
@@ -32,6 +52,16 @@ builder.Services.AddAutoMapper(config =>
     //*** Profiles
     config.AddProfile<RoleProfile>();
     config.AddProfile<UserProfile>();
+    config.AddProfile<RarityProfile>();
+    config.AddProfile<AuctionProfile>();
+    config.AddProfile<AuctionBidProfile>();
+    config.AddProfile<CardProfile>();
+    config.AddProfile<CategoryProfile>();
+    config.AddProfile<CategoryCardProfile>();
+    config.AddProfile<ImageProfile>();
+    config.AddProfile<LanguageProfile>();
+    config.AddProfile<PurchaseOrderProfile>();
+    config.AddProfile<SetProfile>();
 });
 
 // ==============================

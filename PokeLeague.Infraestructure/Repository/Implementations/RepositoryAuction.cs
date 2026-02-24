@@ -52,6 +52,9 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
         {
             var auctions = await _context.Set<Auction>()
                 .AsNoTracking()
+                .Include(a => a.Card)
+                .Include(a => a.AuctionBid)
+                .Include(a => a.PurchaseOrder)
                 .Where(a => a.IsActive)
                 .OrderBy(a => a.Id)
                 .ToListAsync();

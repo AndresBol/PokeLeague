@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -13,6 +14,8 @@ namespace PokeLeague.Application.DTOs
         public string SetId { get; set; } = string.Empty;
         public string RarityId { get; set; } = string.Empty;
         public string LanguageCode { get; set; } = string.Empty;
+
+        [DisplayName("Card Name")]
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public decimal? Grade { get; set; }

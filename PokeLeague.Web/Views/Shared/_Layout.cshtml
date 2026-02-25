@@ -1,4 +1,11 @@
-﻿<!DOCTYPE html>
+﻿@{
+    bool IsSelectedAction(string controller, string action)
+    {
+        return ViewContext.RouteData.Values["controller"]?.ToString() == controller && ViewContext.RouteData.Values["action"]?.ToString() == action;
+    }
+}
+
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -13,7 +20,7 @@
 </head>
 <body>
     <header>
-        <nav class="navbar navbar-expand-md navbar-toggleable-md navbar-light bg-white border-bottom box-shadow mb-3 p-3">
+        <nav class="navbar navbar-expand-md navbar-toggleable-md navbar-light bg-white border-bottom box-shadow align-items-baseline mb-3 p-3 gap-1">
             <div class="d-flex flex-row align-items-center justify-content-between flex-nowrap flex-grow-1 flex-md-grow-0">
                 <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index"><img style="max-height: 65px; width: fit-content;" class="img-fluid" src="~/media/light/imagotipo.png" /></a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
@@ -22,16 +29,18 @@
                 </button>
             </div>
             <div class="navbar-collapse collapse d-md-inline-flex justify-content-between flex-grow-0">
-                <ul class="navbar-nav flex-grow-1">
+                <ul class="navbar-nav flex-grow-1 gap-2 h5">
                     <li class="nav-item">
-                        <a class="nav-link text-dark" asp-area="" asp-controller="user" asp-action="Index">Users</a>
+                        <a class="nav-link @(IsSelectedAction("User", "Index") ? "border-bottom border-warning border-2 text-dark" : "")" asp-area="" asp-controller="user" asp-action="Index"><i class="bi bi-people-fill me-1"></i> Users</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-dark" asp-area="" asp-controller="Auction" asp-action="Index">Auctions</a>
+                        <a class="nav-link @(IsSelectedAction("Card", "Index") ? "border-bottom border-warning border-2 text-dark" : "")" asp-area="" asp-controller="card" asp-action="Index"><i class="bi bi-card-heading me-1"></i> Cards</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link @(IsSelectedAction("Auction", "Index") ? "border-bottom border-warning border-2 text-dark" : "")" asp-area="" asp-controller="Auction" asp-action="Index"><i class="bi bi-briefcase-fill me-1"></i> Auctions</a>
                     </li>
                 </ul>
             </div>
-
         </nav>
     </header>
     <div class="container">

@@ -30,6 +30,8 @@ body {
   text-align: start;
 }
 
+/* Global */
+
 .success {
     color: #0f5132;
     background-color: #d1e7dd;
@@ -46,6 +48,8 @@ body {
     padding: 2px 5px 2px 5px;
     border-radius: 5px;
 }
+
+/* User - Detail */
 
 .userLogo {
     width: 15%;

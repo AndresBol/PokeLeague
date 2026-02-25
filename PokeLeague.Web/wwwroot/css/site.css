@@ -32,6 +32,11 @@ body {
 
 /* Global */
 
+.secondary {
+    color: #41464b;
+    background-color: #e2e3e5;
+}
+
 .success {
     color: #0f5132;
     background-color: #d1e7dd;

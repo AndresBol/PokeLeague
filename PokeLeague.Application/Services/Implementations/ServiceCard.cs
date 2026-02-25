@@ -14,11 +14,13 @@ namespace PokeLeague.Application.Services.Implementations
     public class ServiceCard : IServiceCard
     {
         private readonly IRepositoryCard _repository;
+        private readonly IRepositoryAuction _repositoryAuction;
         private readonly IMapper _mapper;
 
-        public ServiceCard(IRepositoryCard repository, IMapper mapper)
+        public ServiceCard(IRepositoryCard repository, IRepositoryAuction repositoryAuction, IMapper mapper)
         {
             _repository = repository;
+            _repositoryAuction = repositoryAuction;
             _mapper = mapper;
         }
 
@@ -34,6 +36,8 @@ namespace PokeLeague.Application.Services.Implementations
         {
             var card = await _repository.FindByIdAsync(id);
             var cardDTO = _mapper.Map<CardDTO>(card);
+
+            cardDTO.AuctionStatus = await ResolveAuctionStatusAsync(id);
 
             return cardDTO;
         }
@@ -56,6 +60,24 @@ namespace PokeLeague.Application.Services.Implementations
         public async Task DeleteAsync(int id)
         {
             await _repository.DeleteAsync(id);
+        }
+
+        private async Task<string> ResolveAuctionStatusAsync(int cardId)
+        {
+            var auction = await _repositoryAuction.FindActiveByCardIdAsync(cardId);
+
+            if (auction == null)
+                return "Stored";
+
+            var now = DateTime.Now;
+
+            if (auction.StartDate <= now && auction.EndDate >= now)
+                return "In Auction";
+
+            if (auction.StartDate > now)
+                return "Scheduled Auction";
+
+            return "Stored";
         }
     }
 }

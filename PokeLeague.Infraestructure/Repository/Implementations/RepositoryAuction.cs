@@ -37,6 +37,16 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
             }
         }
 
+        public async Task<Auction?> FindActiveByCardIdAsync(int cardId)
+        {
+            var auction = await _context.Set<Auction>()
+                .AsNoTracking()
+                .Where(a => a.CardId == cardId && a.IsActive && !a.IsCanceled)
+                .OrderByDescending(a => a.StartDate)
+                .FirstOrDefaultAsync();
+            return auction;
+        }
+
         public async Task<Auction> FindByIdAsync(int id)
         {
             var auction = await _context.Set<Auction>()

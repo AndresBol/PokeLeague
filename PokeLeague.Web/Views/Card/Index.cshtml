@@ -47,13 +47,13 @@
                     <div class="chip @(item.IsNew ? "success" : "warning")">@(item.IsNew ? "New" : "Used")</div>
                 </td>
                 <td class="d-flex justify-content-end">
-                    <div id="carouselCard@(item.Id)Images" class="carousel slide" data-bs-ride="carousel" style="width: 385px;">
+                    <div id="carouselCard@(item.Id)Images" class="carousel slide" data-bs-ride="carousel" style="max-width: 385px; width: 100%;">
                         <div class="carousel-inner">
                             @foreach(var image in item.Image)
                             {
                                 <div class="carousel-item @(image.Id == item.Image.First().Id ? "active" : "")">
                                     <img src="data:image/jpeg;base64,@Convert.ToBase64String(image.ImageData)"
-                                         style="width: 385px; height: auto; max-height: 450px; flex-grow: 0; flex-shrink: 0;"
+                                         style="width: 100%; height: auto; max-height: 450px; object-fit: contain;"
                                          loading="lazy" alt="@item.Name Card Image">
                                 </div>
                             }

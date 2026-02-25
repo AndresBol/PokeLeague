@@ -3,6 +3,14 @@
 }
 
 <div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+    <h1 class="display-4">Welcome to PokeLeague!</h1>
+    <p class="lead mt-3">
+        The ultimate marketplace for Pokémon card collectors and trainers.
+        Browse live auctions, place your bids, and add the rarest cards to your collection.
+        Whether you're hunting for a holographic Charizard or trading your duplicates,
+        PokeLeague is where every card finds its trainer.
+    </p>
+    <a asp-controller="Auction" asp-action="Index" class="btn btn-secondary btn-lg mt-4">
+        Browse Auctions
+    </a>
 </div>

@@ -42,6 +42,13 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
             var user = await _context.Set<User>()
                 .AsNoTracking()
                 .Include(u => u.Role)
+                .Include(u => u.Auction)
+                    .ThenInclude(a => a.Card)
+                .Include(u => u.Auction)
+                    .ThenInclude(a => a.AuctionBid)
+                .Include(u => u.Auction)
+                    .ThenInclude(a => a.PurchaseOrder)
+                .Include(u => u.AuctionBid)
                 .FirstOrDefaultAsync(u => u.Id == id && u.IsActive);
             return user!;
         }
@@ -50,6 +57,13 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
             var users = await _context.Set<User>()
                 .AsNoTracking()
                 .Include(u => u.Role)
+                .Include(u => u.Auction)
+                    .ThenInclude(a => a.Card)
+                .Include(u => u.Auction)
+                    .ThenInclude(a => a.AuctionBid)
+                .Include(u => u.Auction)
+                    .ThenInclude(a => a.PurchaseOrder)
+                .Include(u => u.AuctionBid)
                 .Where(u => u.IsActive)
                 .OrderBy(u => u.Id)
                 .ToListAsync();

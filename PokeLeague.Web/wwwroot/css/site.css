@@ -42,6 +42,14 @@ body {
 
 .chip {
     display: inline;
+    text-align: center;
     padding: 2px 5px 2px 5px;
     border-radius: 5px;
+}
+
+.userLogo {
+    width: 15%;
+    height: auto;
+    flex-grow: 0;
+    flex-shrink: 0;
 }

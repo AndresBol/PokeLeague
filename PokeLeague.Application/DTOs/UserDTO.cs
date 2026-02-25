@@ -16,7 +16,10 @@ namespace PokeLeague.Application.DTOs
         public string PasswordHash { get; set; } = string.Empty;
         [DisplayName("Account Status")]
         public bool IsBlocked { get; set; }
+        [DisplayName("Signup Date")]
         public DateOnly SignupDate { get; set; }
+        public ICollection<AuctionDTO> Auction { get; set; } = new List<AuctionDTO>();
+        public ICollection<AuctionBidDTO> AuctionBid { get; set; } = new List<AuctionBidDTO>();
         public bool IsActive { get; set; }
         public RoleDTO Role { get; set; } = new RoleDTO();
     }

@@ -27,6 +27,9 @@ namespace PokeLeague.Application.Profiles
                 .ForMember(dest => dest.LanguageCodeNavigation, orig => orig.MapFrom(o => o.Language))
                 .ForMember(dest => dest.Image, orig => orig.MapFrom(o => o.Image))
                 .ForMember(dest => dest.CategoryCard, orig => orig.MapFrom(o => o.CategoryCard));
+
+            CreateMap<Card, CardDTO>()
+                .ForMember(dest => dest.Language, orig => orig.MapFrom(o => o.LanguageCodeNavigation));
         }
     }
 }

@@ -1,0 +1,119 @@
+﻿@model PokeLeague.Application.DTOs.CardDTO
+
+@{
+    ViewData["Title"] = Model.Name;
+
+    var imageCount = Model.Image.Count;
+}
+
+<div class="container-sm mb-2">
+    <h2>@Html.DisplayFor(model => model.Name)</h2>
+    <div class="container-lg d-flex flex-column flex-lg-row justify-content-between align-items-start mt-5">
+        <dl class="row">
+            <dt class="col-sm-4 h5 text-nowrap">
+                @Html.DisplayNameFor(model => model.Description):
+            </dt>
+            <dd class="col-sm-8">
+                @Html.DisplayFor(model => model.Description)
+            </dd>
+            <dt class="col-sm-4 h5 text-nowrap">
+                @Html.DisplayNameFor(model => model.Set.Name):
+            </dt>
+            <dd class="col-sm-8 text-nowrap">
+                @Html.DisplayFor(model => model.Set.Name)
+            </dd>
+            <dt class="col-sm-4 h5 text-nowrap">
+                @Html.DisplayNameFor(model => model.Rarity.Name):
+            </dt>
+            <dd class="col-sm-8 text-nowrap">
+                @Html.DisplayFor(model => model.Rarity.Name)
+            </dd>
+            <dt class="col-sm-4 h5 text-nowrap">
+                @Html.DisplayNameFor(model => model.Language.LanguageName):
+            </dt>
+            <dd class="col-sm-8 text-nowrap">
+                @Html.DisplayFor(model => model.Language.LanguageName)
+            </dd>
+            <dt class="col-sm-4 h5 text-nowrap">
+                @Html.DisplayNameFor(model => model.Grade):
+            </dt>
+            <dd class="col-sm-8 text-nowrap">
+                @(Model.Grade != null ? Model.Grade : "Not Graded")
+            </dd>
+            <dt class="col-sm-4 h5 text-nowrap">
+                Categories:
+            </dt>
+            <dd class="col-sm-8 text-nowrap">
+               @foreach(var category in Model.CategoryCard)
+                {
+                    <div class="chip secondary">@category.Category.Name</div>
+                }
+            </dd>
+            <dt class="col-sm-4 h5 text-nowrap">
+                @Html.DisplayNameFor(model => model.IsNew):
+            </dt>
+            <dd class="col-sm-8 text-nowrap">
+                <div class="chip @(Model.IsNew ? "success" : "warning")">@(Model.IsNew ? "New" : "Used")</div>
+            </dd>
+            <dt class="col-sm-4 h5 text-nowrap">
+                @Html.DisplayNameFor(model => model.AuctionStatus):
+            </dt>
+            <dd class="col-sm-8 text-nowrap">
+                @{
+                    var statusClass = Model.AuctionStatus switch
+                    {
+                        "In Progress" => "success",
+                        "Scheduled" => "warning",
+                        _ => "secondary"
+                    };
+                }
+                <div class="chip @statusClass">Auction @Model.AuctionStatus</div>
+            </dd>
+            <dt class="col-sm-4 h5 text-nowrap">
+                @Html.DisplayNameFor(model => model.RegistrationDate):
+            </dt>
+            <dd class="col-sm-8 text-nowrap">
+                @Html.DisplayFor(model => model.RegistrationDate)
+            </dd>
+            <dt class="col-sm-4 h5 text-nowrap">
+                Owner @Html.DisplayNameFor(model => model.User.Username):
+            </dt>
+            <dd class="col-sm-8 text-nowrap">
+                @Html.DisplayFor(model => model.User.Username)
+            </dd>
+        </dl>
+        <div id="carouselCard@(Model.Id)Images" class="carousel slide" data-bs-ride="carousel" style="width: 385px;">
+            <div class="carousel-indicators">
+                @for (int i = 0; i < imageCount && imageCount > 1; i++)
+                {
+                    <button type="button" data-bs-target="#carouselCard@(Model.Id)Images" data-bs-slide-to="@i" class="active" aria-current="true" aria-label="Slide @(i + 1)"></button>
+                }
+            </div>
+            <div class="carousel-inner">
+                @foreach (var image in Model.Image)
+                {
+                    <div class="carousel-item @(image.Id == Model.Image.First().Id ? "active" : "")">
+                        <img src="data:image/jpeg;base64,@Convert.ToBase64String(image.ImageData)"
+                                style="width: 385px; height: auto; max-height: 450px; flex-grow: 0; flex-shrink: 0;"
+                                loading="lazy" alt="@Model.Name Card Image">
+                    </div>
+                }
+            </div>
+            @if(imageCount > 1)
+            {
+                <button class="carousel-control-prev" type="button" data-bs-target="#carouselCard@(Model.Id)Images" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Previous</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#carouselCard@(Model.Id)Images" data-bs-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Next</span>
+                </button>
+            }
+        </div>
+    </div>
+</div>
+@await Html.PartialAsync("_CardAuctionsTable", Model.Auction)
+<div class="d-flex flex-column align-items-start justify-content-end my-5 mx-2">
+    <a asp-action="Index" class="btn btn-secondary align-items-center"><h3><i class="bi bi-arrow-return-left me-3"></i>Back to list</h3></a>
+</div>

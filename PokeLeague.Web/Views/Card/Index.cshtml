@@ -1,0 +1,66 @@
+﻿@model IEnumerable<PokeLeague.Application.DTOs.CardDTO>
+
+@{
+    ViewData["Title"] = "Card Maintenance";
+}
+
+<div class="d-flex justify-content-between align-items-center">
+    <h1>Cards</h1>
+    @{
+        /*TODO: <a asp-action="Create" class="btn btn-primary" role="button">Create</a>*/
+    }
+</div>
+<table class="table table-striped table-hover table-bordered">
+    <thead>
+        <tr>
+            <th class="text-center" scope="col">
+                #
+            </th>
+            <th scope="col">
+                @Html.DisplayNameFor(model => model.Name)
+            </th>
+            <th scope="col">
+                Owner @Html.DisplayNameFor(model => model.User.Username)
+            </th>
+            <th class="text-center" scope="col">
+                @Html.DisplayNameFor(model => model.IsNew)
+            </th>
+            <th scope="col" class="text-end">
+                Card Photos
+            </th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr onclick="location.href='@Url.Action("Details", new { id = item.Id })'" style="cursor: pointer;">
+                <td class="text-center" scope="row">
+                    @(Model.ToList().IndexOf(item) + 1)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Name)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.User.Username)
+                </td>
+                <td class="text-center">
+                    <div class="chip @(item.IsNew ? "success" : "warning")">@(item.IsNew ? "New" : "Used")</div>
+                </td>
+                <td class="d-flex justify-content-end">
+                    <div id="carouselCard@(item.Id)Images" class="carousel slide" data-bs-ride="carousel" style="max-width: 385px; width: 100%;">
+                        <div class="carousel-inner">
+                            @foreach(var image in item.Image)
+                            {
+                                <div class="carousel-item @(image.Id == item.Image.First().Id ? "active" : "")">
+                                    <img src="data:image/jpeg;base64,@Convert.ToBase64String(image.ImageData)"
+                                         style="width: 100%; height: auto; max-height: 450px; object-fit: contain;"
+                                         loading="lazy" alt="@item.Name Card Image">
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

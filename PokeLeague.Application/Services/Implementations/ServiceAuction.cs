@@ -2,6 +2,7 @@ using AutoMapper;
 using PokeLeague.Application.DTOs;
 using PokeLeague.Application.Services.Interfaces;
 using PokeLeague.Infraestructure.Models;
+using PokeLeague.Infraestructure.Repository.Implementations;
 using PokeLeague.Infraestructure.Repository.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -35,6 +36,8 @@ namespace PokeLeague.Application.Services.Implementations
             var auction = await _repository.FindByIdAsync(id);
             var auctionDTO = _mapper.Map<AuctionDTO>(auction);
 
+            auctionDTO.Status = ResolveStatusAsync(auctionDTO);
+
             return auctionDTO;
         }
 
@@ -42,7 +45,7 @@ namespace PokeLeague.Application.Services.Implementations
         {
             var auctions = await _repository.ListAsync();
             var collection = _mapper.Map<ICollection<AuctionDTO>>(auctions);
-
+            //TODO: Fill Status
             return collection;
         }
 
@@ -53,9 +56,37 @@ namespace PokeLeague.Application.Services.Implementations
             await _repository.UpdateAsync(auction);
         }
 
+        public async Task<AuctionDTO?> FindActiveByCardIdAsync(int cardId)
+        {
+            var auction = await _repository.FindActiveByCardIdAsync(cardId);
+            if (auction == null)
+                return null;
+
+            var auctionDTO = _mapper.Map<AuctionDTO>(auction);
+            auctionDTO.Status = ResolveStatusAsync(auctionDTO);
+
+            return auctionDTO;
+        }
+
         public async Task DeleteAsync(int id)
         {
             await _repository.DeleteAsync(id);
+        }
+
+        private string ResolveStatusAsync(AuctionDTO auction)
+        {
+            if (auction.IsCanceled)
+                return "Canceled";
+
+            var now = DateTime.Now;
+
+            if (auction.StartDate > now)
+                return "Scheduled";
+
+            if (auction.StartDate <= now && auction.EndDate >= now)
+                return "In Progress";
+
+            return "Finished";
         }
     }
 }

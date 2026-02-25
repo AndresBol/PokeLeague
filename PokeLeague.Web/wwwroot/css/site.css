@@ -30,6 +30,13 @@ body {
   text-align: start;
 }
 
+/* Global */
+
+.secondary {
+    color: #41464b;
+    background-color: #e2e3e5;
+}
+
 .success {
     color: #0f5132;
     background-color: #d1e7dd;
@@ -40,12 +47,19 @@ body {
     background-color: #f8d7da;
 }
 
+.warning {
+    color: #664d03;
+    background-color: #fff3cd;
+}
+
 .chip {
     display: inline;
     text-align: center;
     padding: 2px 5px 2px 5px;
     border-radius: 5px;
 }
+
+/* User - Detail */
 
 .userLogo {
     width: 15%;

@@ -14,11 +14,13 @@ namespace PokeLeague.Application.Services.Implementations
     public class ServiceCard : IServiceCard
     {
         private readonly IRepositoryCard _repository;
+        private readonly IServiceAuction _serviceAuction;
         private readonly IMapper _mapper;
 
-        public ServiceCard(IRepositoryCard repository, IMapper mapper)
+        public ServiceCard(IRepositoryCard repository, IServiceAuction serviceAuction, IMapper mapper)
         {
             _repository = repository;
+            _serviceAuction = serviceAuction;
             _mapper = mapper;
         }
 
@@ -35,6 +37,15 @@ namespace PokeLeague.Application.Services.Implementations
             var card = await _repository.FindByIdAsync(id);
             var cardDTO = _mapper.Map<CardDTO>(card);
 
+            var activeAuction = await _serviceAuction.FindActiveByCardIdAsync(id);
+            cardDTO.AuctionStatus = activeAuction?.Status ?? "Prepared";
+            //TODO: Search if exists a better way
+            foreach (var auction in cardDTO.Auction)
+            {
+                var resolvedAuction = await _serviceAuction.FindByIdAsync(auction.Id);
+                auction.Status = resolvedAuction.Status;
+            }
+
             return cardDTO;
         }
 
@@ -42,7 +53,7 @@ namespace PokeLeague.Application.Services.Implementations
         {
             var cards = await _repository.ListAsync();
             var collection = _mapper.Map<ICollection<CardDTO>>(cards);
-
+            //TODO: Fill Status
             return collection;
         }
 

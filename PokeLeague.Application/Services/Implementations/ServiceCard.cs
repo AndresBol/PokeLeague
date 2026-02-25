@@ -14,13 +14,13 @@ namespace PokeLeague.Application.Services.Implementations
     public class ServiceCard : IServiceCard
     {
         private readonly IRepositoryCard _repository;
-        private readonly IRepositoryAuction _repositoryAuction;
+        private readonly IServiceAuction _serviceAuction;
         private readonly IMapper _mapper;
 
-        public ServiceCard(IRepositoryCard repository, IRepositoryAuction repositoryAuction, IMapper mapper)
+        public ServiceCard(IRepositoryCard repository, IServiceAuction serviceAuction, IMapper mapper)
         {
             _repository = repository;
-            _repositoryAuction = repositoryAuction;
+            _serviceAuction = serviceAuction;
             _mapper = mapper;
         }
 
@@ -37,7 +37,14 @@ namespace PokeLeague.Application.Services.Implementations
             var card = await _repository.FindByIdAsync(id);
             var cardDTO = _mapper.Map<CardDTO>(card);
 
-            cardDTO.AuctionStatus = await ResolveAuctionStatusAsync(id);
+            var activeAuction = await _serviceAuction.FindActiveByCardIdAsync(id);
+            cardDTO.AuctionStatus = activeAuction?.Status ?? "Stored";
+            //TODO: Search if exists a better way
+            foreach (var auction in cardDTO.Auction)
+            {
+                var resolvedAuction = await _serviceAuction.FindByIdAsync(auction.Id);
+                auction.Status = resolvedAuction.Status;
+            }
 
             return cardDTO;
         }
@@ -46,7 +53,7 @@ namespace PokeLeague.Application.Services.Implementations
         {
             var cards = await _repository.ListAsync();
             var collection = _mapper.Map<ICollection<CardDTO>>(cards);
-
+            //TODO: Fill Status
             return collection;
         }
 
@@ -60,24 +67,6 @@ namespace PokeLeague.Application.Services.Implementations
         public async Task DeleteAsync(int id)
         {
             await _repository.DeleteAsync(id);
-        }
-
-        private async Task<string> ResolveAuctionStatusAsync(int cardId)
-        {
-            var auction = await _repositoryAuction.FindActiveByCardIdAsync(cardId);
-
-            if (auction == null)
-                return "Stored";
-
-            var now = DateTime.Now;
-
-            if (auction.StartDate <= now && auction.EndDate >= now)
-                return "In Auction";
-
-            if (auction.StartDate > now)
-                return "Scheduled Auction";
-
-            return "Stored";
         }
     }
 }

@@ -49,6 +49,7 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
                 .Include(c => c.Image)
                 .Include(c => c.CategoryCard)
                     .ThenInclude(cc => cc.Category)
+                .Include(c => c.Auction)
                 .FirstOrDefaultAsync(c => c.Id == id && c.IsActive);
             return card!;
         }
@@ -65,6 +66,7 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
                 .Include(c => c.Image)
                 .Include(c => c.CategoryCard)
                     .ThenInclude(cc => cc.Category)
+                .Include(c => c.Auction)
                 .Where(c => c.IsActive)
                 .OrderBy(c => c.Id)
                 .ToListAsync();

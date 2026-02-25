@@ -41,6 +41,8 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
         {
             var card = await _context.Set<Card>()
                 .AsNoTracking()
+                .Include(c => c.User)
+                    .ThenInclude(u => u.Role)
                 .Include(c => c.Set)
                 .Include(c => c.Rarity)
                 .Include(c => c.LanguageCodeNavigation)

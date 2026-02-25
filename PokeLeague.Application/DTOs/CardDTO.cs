@@ -19,6 +19,7 @@ namespace PokeLeague.Application.DTOs
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public decimal? Grade { get; set; }
+        [DisplayName("Status")]
         public bool IsNew { get; set; }
         public DateOnly RegistrationDate { get; set; }
         public bool IsActive { get; set; }
@@ -27,5 +28,6 @@ namespace PokeLeague.Application.DTOs
         public LanguageDTO Language { get; set; } = new LanguageDTO();
         public ICollection<ImageDTO> Image { get; set; } = new List<ImageDTO>();
         public ICollection<CategoryCardDTO> CategoryCard { get; set; } = new List<CategoryCardDTO>();
+        public UserDTO User { get; set; } = new UserDTO();
     }
 }

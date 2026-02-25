@@ -73,6 +73,7 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
                     .ThenInclude(c => c.LanguageCodeNavigation)
                 .Include(a => a.Card)
                     .ThenInclude(c => c.User)
+                .ThenInclude(c => c.Image)
                 .Include(a => a.AuctionBid)
                     .ThenInclude(ab => ab.User)
                 .Include(a => a.PurchaseOrder)

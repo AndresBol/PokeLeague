@@ -32,6 +32,6 @@ namespace PokeLeague.Application.DTOs
         public UserDTO User { get; set; } = new UserDTO();
         public ICollection<AuctionDTO> Auction { get; set; } = new List<AuctionDTO>();
         [DisplayName("Actual Status")]
-        public string AuctionStatus { get; set; } = "Stored";
+        public string AuctionStatus { get; set; } = string.Empty;
     }
 }

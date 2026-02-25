@@ -38,7 +38,7 @@ namespace PokeLeague.Application.Services.Implementations
             var cardDTO = _mapper.Map<CardDTO>(card);
 
             var activeAuction = await _serviceAuction.FindActiveByCardIdAsync(id);
-            cardDTO.AuctionStatus = activeAuction?.Status ?? "Stored";
+            cardDTO.AuctionStatus = activeAuction?.Status ?? "Prepared";
             //TODO: Search if exists a better way
             foreach (var auction in cardDTO.Auction)
             {

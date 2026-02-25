@@ -49,6 +49,8 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
         {
             var categories = await _context.Set<Category>()
                 .AsNoTracking()
+                .Include(c => c.CategoryCard)
+                    .ThenInclude(cc => cc.Card)
                 .Where(c => c.IsActive)
                 .OrderBy(c => c.Id)
                 .ToListAsync();

@@ -49,6 +49,14 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
         {
             var images = await _context.Set<Image>()
                 .AsNoTracking()
+                .Include(i => i.Card)
+                    .ThenInclude(c => c.Set)
+                .Include(i => i.Card)
+                    .ThenInclude(c => c.Rarity)
+                .Include(i => i.Card)
+                    .ThenInclude(c => c.LanguageCodeNavigation)
+                .Include(i => i.Card)
+                    .ThenInclude(c => c.User)
                 .Where(i => i.IsActive)
                 .OrderBy(i => i.Id)
                 .ToListAsync();

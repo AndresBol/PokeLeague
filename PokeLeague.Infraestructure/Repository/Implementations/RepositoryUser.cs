@@ -49,6 +49,7 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
         {
             var users = await _context.Set<User>()
                 .AsNoTracking()
+                .Include(u => u.Role)
                 .Where(u => u.IsActive)
                 .OrderBy(u => u.Id)
                 .ToListAsync();

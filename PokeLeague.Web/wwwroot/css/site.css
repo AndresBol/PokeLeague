@@ -29,3 +29,19 @@ body {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
   text-align: start;
 }
+
+.success {
+    color: #0f5132;
+    background-color: #d1e7dd;
+}
+
+.danger {
+    color: #842029;
+    background-color: #f8d7da;
+}
+
+.chip {
+    display: inline;
+    padding: 2px 5px 2px 5px;
+    border-radius: 5px;
+}

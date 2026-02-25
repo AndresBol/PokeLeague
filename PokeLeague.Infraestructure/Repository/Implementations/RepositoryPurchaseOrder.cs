@@ -49,6 +49,12 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
         {
             var purchaseOrders = await _context.Set<PurchaseOrder>()
                 .AsNoTracking()
+                .Include(po => po.Auction)
+                    .ThenInclude(a => a.Card)
+                .Include(po => po.Auction)
+                    .ThenInclude(a => a.User)
+                .Include(po => po.User)
+                    .ThenInclude(u => u.Role)
                 .Where(po => po.IsActive)
                 .OrderBy(po => po.Id)
                 .ToListAsync();

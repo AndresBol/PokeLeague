@@ -1,90 +1,76 @@
 @model IEnumerable<PokeLeague.Application.DTOs.AuctionDTO>
 
 @{
-    ViewData["Title"] = "Index";
+	ViewData["Title"] = "Active Auctions";
 }
 
-<h1>Index</h1>
+<h2 class="mb-4">Active Auctions</h2>
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.Id)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.UserId)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Card.Name)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.StartDate)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.EndDate)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.BasePrice)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.MinIncrease)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.IsCanceled)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.IsActive)
-            </th>
-            <th>
-                Quantity of Bids
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.Id)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.UserId)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Card.Name)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.StartDate)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.EndDate)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.BasePrice)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.MinIncrease)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.IsCanceled)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.IsActive)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.AuctionBid.Count)
-            </td>
-            <td>
+<div class="row row-cols-1 row-cols-md-3 g-4"
+@foreach (var item in Model)
+{
+		<div class="col">
+			<article class="card h-100 shadow-sm border-0">
+				<div class="rounded-top overflow-hidden bg-light" style="height: 280px;">
+				@{
+					var firstImage = item.Card.Image
+					.FirstOrDefault(i => i.IsActive);
 
-                @Html.ActionLink("Edit", "Edit", new { /* id=item.PrimaryKey */ }) |
-                @Html.ActionLink("Details", "Details", new { /* id=item.PrimaryKey */ }) |
-                @Html.ActionLink("Delete", "Delete", new { /* id=item.PrimaryKey */ })
-            </td>
-        </tr>
+				}
+				@if (firstImage != null && firstImage.ImageData.Length > 0)
+				{
+							<img class="w-100 h-100 object-fit-cover"
+									src="data:image/jpeg;base64,@Convert.ToBase64String(firstImage.ImageData)"
+									alt="Image of @item.Card.Name"
+									loading="lazy"/>
+				}
+				else
+				{
+							<div class="d-flex justify-content-center align-items-center h-100 text-muted">
+								<span> No Image</span>
+								</div>
+				}
+				  </div>
+
+
+				  <div class="card-body d-flex flex-column">
+
+					  <h5 class="card-title fw-bold">
+					@item.Card.Name
+					  </h5>
+
+					  <p class="card-text mb-1">
+						  <strong>Start date:</strong> @item.StartDate.ToShortDateString()
+					  </p>
+
+					   <p class="card-text mb-1">
+							  <strong>End date:</strong> @item.EndDate.ToShortDateString()
+					   </p>
+
+							<p class="card-text mb-1">
+								  <strong>Base Price:</strong> $@item.BasePrice
+						   </p>
+
+							<p class="card-text mb-1">
+									  <strong>Min Increase:</strong> $@item.MinIncrease
+							   </p>
+						<p class="card-text">
+							<span class="badge bg-primary">
+						@item.AuctionBid.Count Bids
+							</span>
+						</p>
+
+						<div class="mt-auto">
+							<a asp-action="Details"
+							asp-route-id="@item.Id"
+							class="btn btn-dark w-100">
+							View Auction
+						</a>
+						</div>
+
+				  </div>
+			  </article>
+		  </div>
 }
-    </tbody>
-</table>
+
+</div>

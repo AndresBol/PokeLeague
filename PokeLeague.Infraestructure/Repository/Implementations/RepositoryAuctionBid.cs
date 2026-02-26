@@ -41,6 +41,12 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
         {
             var auctionBid = await _context.Set<AuctionBid>()
                 .AsNoTracking()
+                .Include(ab => ab.Auction)
+                    .ThenInclude(a => a.Card)
+                .Include(ab => ab.Auction)
+                    .ThenInclude(a => a.User)
+                .Include(ab => ab.User)
+                    .ThenInclude(u => u.Role)
                 .FirstOrDefaultAsync(ab => ab.Id == id && ab.IsActive);
             return auctionBid!;
         }
@@ -56,7 +62,7 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
                 .Include(ab => ab.User)
                     .ThenInclude(u => u.Role)
                 .Where(ab => ab.IsActive)
-                .OrderBy(ab => ab.Id)
+                .OrderByDescending(ab => ab.BidDate)
                 .ToListAsync();
             return auctionBids!;
         }

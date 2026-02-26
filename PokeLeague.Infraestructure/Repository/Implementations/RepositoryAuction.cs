@@ -54,6 +54,7 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
                 .AsNoTracking()
                 .Include(a => a.Card)
                 .Include(a => a.AuctionBid)
+                    .ThenInclude(ab => ab.User)
                 .Include(a => a.PurchaseOrder)
                 .FirstOrDefaultAsync(a => a.Id == id && a.IsActive);
             return auction!;

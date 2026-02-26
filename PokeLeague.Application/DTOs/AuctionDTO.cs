@@ -24,6 +24,6 @@ namespace PokeLeague.Application.DTOs
         public CardDTO Card { get; set; } = new CardDTO();
         public PurchaseOrderDTO? PurchaseOrder { get; set; }
         public ICollection<AuctionBidDTO> AuctionBid { get; set; } = new List<AuctionBidDTO>();
-        public string Status { get; set; } = "Canceled";
+        public string Status { get; set; } = string.Empty;
     }
 }

@@ -1,0 +1,45 @@
+﻿@model IEnumerable<PokeLeague.Application.DTOs.AuctionBidDTO>
+
+<div class="d-flex justify-content-between align-items-center">
+    <h3>Bids</h3>
+    @{
+        /*TODO: <a asp-controller="Auction" asp-action="Create" class="btn btn-primary" role="button">Create</a>*/
+    }
+</div>
+<table class="table table-striped table-hover table-bordered">
+    <thead>
+        <tr>
+            <th class="text-center" scope="col">
+                #
+            </th>
+            <th scope="col">
+                Bidder @Html.DisplayNameFor(model => model.User.Username)
+            </th>
+            <th class="text-center" scope="col">
+                @Html.DisplayNameFor(model => model.BidAmount)
+            </th>
+            <th class="text-center" scope="col">
+                @Html.DisplayNameFor(model => model.BidDate)
+            </th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model.OrderByDescending(b => b.BidDate))
+        {
+            <tr onclick="location.href='@Url.Action("Details", "Auction", new { id = item.Id })'" style="cursor: pointer;">
+                <td class="text-center" scope="row">
+                    @(Model.OrderByDescending(b => b.BidDate).ToList().IndexOf(item) + 1)
+                </td>
+                <td>
+                    @item.User.Username
+                </td>
+                <td class="text-center">
+                    $ @item.BidAmount
+                </td>
+                <td class="text-center">
+                    @item.BidDate.ToString("dd/MM/yyyy HH:mm")
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

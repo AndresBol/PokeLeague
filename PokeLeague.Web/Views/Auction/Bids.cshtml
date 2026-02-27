@@ -1,0 +1,14 @@
+﻿@model PokeLeague.Application.DTOs.AuctionDTO
+
+<h2> Bid History - @Model.Card.Name</h2>
+
+@await Html.PartialAsync("_AuctionBidsTable", Model.AuctionBid)
+
+<div class="mt-4">
+    <a asp-action="Details"
+       asp-route-id="@Model.Id"
+       class="btn btn-secondary">
+        Back to Auction 
+    </a>
+</div>
+

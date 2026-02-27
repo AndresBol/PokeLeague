@@ -31,9 +31,13 @@ namespace PokeLeague.Application.Services.Implementations
             return id;
         }
 
-        public async Task<AuctionDTO> FindByIdAsync(int id)
+        public async Task<AuctionDTO?> FindByIdAsync(int id)
         {
             var auction = await _repository.FindByIdAsync(id);
+
+            if (auction == null)
+                return null;
+
             var auctionDTO = _mapper.Map<AuctionDTO>(auction);
 
             auctionDTO.Status = ResolveStatusAsync(auctionDTO);

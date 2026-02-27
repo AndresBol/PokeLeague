@@ -29,5 +29,16 @@ namespace PokeLeague.Web.Controllers
             var auction = await _serviceAuction.FindByIdAsync(id.Value);
             return View(auction);
         }
+
+        public async Task<IActionResult> Bids(int id) 
+        {
+            Console.WriteLine($"ID received: {id}");
+            var auction = await _serviceAuction.FindByIdAsync(id);
+            if(auction == null)
+                return NotFound();
+
+            return View(auction);
+        }
+
     }
 }

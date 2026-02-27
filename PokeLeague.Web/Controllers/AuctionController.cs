@@ -40,5 +40,16 @@ namespace PokeLeague.Web.Controllers
             return View(auction);
         }
 
+        public async Task<IActionResult> Active()
+        {
+            var auctions = await _serviceAuction.ListActiveAsync();
+            return View("Index",auctions);
+        }
+
+        public async Task<IActionResult> Closed()
+        {
+            var auctions = await _serviceAuction.ListClosedAsync();
+            return View("Index", auctions);
+        }
     }
 }

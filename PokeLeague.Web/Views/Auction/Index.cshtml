@@ -4,7 +4,13 @@
 	ViewData["Title"] = "Active Auctions";
 }
 
-<h2 class="mb-4">Active Auctions</h2>
+<h2 class="mb-4">All Auctions</h2>
+
+<div class="mb-3">
+	<a asp-action="Index" class="btn btn-dark">ALL</a>
+	<a asp-action="Active" class="btn btn-success">Active</a>
+	<a asp-action="Closed" class="btn btn-secondary">Finished / Canceled</a>
+</div>
 
 <div class="row row-cols-1 row-cols-md-3 g-4">
 @foreach (var item in Model)

@@ -15,5 +15,7 @@ namespace PokeLeague.Application.Services.Interfaces
         Task UpdateAsync(AuctionDTO auctionDto);
         Task DeleteAsync(int id);
         Task<AuctionDTO?> FindActiveByCardIdAsync(int cardId);
+        Task<ICollection<AuctionDTO>> ListActiveAsync();
+        Task<ICollection<AuctionDTO>> ListClosedAsync();
     }
 }

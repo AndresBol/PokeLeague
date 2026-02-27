@@ -49,6 +49,11 @@ namespace PokeLeague.Application.Services.Implementations
         {
             var auctions = await _repository.ListAsync();
             var collection = _mapper.Map<ICollection<AuctionDTO>>(auctions);
+
+            foreach (var auction in collection) 
+            {
+                auction.Status = ResolveStatusAsync(auction);
+            }
             //TODO: Fill Status
             return collection;
         }
@@ -91,6 +96,26 @@ namespace PokeLeague.Application.Services.Implementations
                 return "In Progress";
 
             return "Finished";
+        }
+
+        public async Task<ICollection<AuctionDTO>> ListActiveAsync() 
+        {
+            var auction = await ListAsync();
+
+            return auction
+                .Where(a => a.Status =="Scheduled" || a.Status =="In Progress")
+                .ToList();
+
+        }
+
+        public async Task<ICollection<AuctionDTO>> ListClosedAsync()
+        {
+            var auction = await ListAsync();
+
+            return auction
+                .Where(a => a.Status == "Finished" || a.Status == "Canceled")
+                .ToList();
+
         }
     }
 }

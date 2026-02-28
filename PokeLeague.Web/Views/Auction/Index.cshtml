@@ -61,9 +61,19 @@
 									  <strong>Min Increase:</strong> $@item.MinIncrease
 							   </p>
 						<p class="card-text">
-							<span class="badge bg-primary">
-						@item.AuctionBid.Count Bids
+
+							@if(item.IsCanceled)
+							{
+							<span class="badge bg-danger">
+								Canceled
 							</span>
+							}else
+							{
+							<span class="badge bg-primary">
+								@item.AuctionBid.Count Bids
+							</span>
+							}
+					
 						</p>
 
 						<div class="mt-auto">

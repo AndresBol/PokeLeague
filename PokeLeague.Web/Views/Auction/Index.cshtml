@@ -2,14 +2,23 @@
 
 @{
 	ViewData["Title"] = "Active Auctions";
+
+	var viewAction = ViewContext.RouteData.Values["action"]?.ToString();
+
+	var auctionListType = viewAction switch
+	{
+		"Index" => "All",
+		"Active" => "Active",
+		_ => "Finished / Canceled"
+	};
 }
 
-<h2 class="mb-4">All Auctions</h2>
+<h2 class="mb-4">@auctionListType Auctions</h2>
 
 <div class="mb-3">
-	<a asp-action="Index" class="btn btn-dark">ALL</a>
-	<a asp-action="Active" class="btn btn-success">Active</a>
-	<a asp-action="Closed" class="btn btn-secondary">Finished / Canceled</a>
+	<a asp-action="Index" class="btn @(viewAction == "Index" ? "btn-warning" : "btn-secondary")">ALL</a>
+	<a asp-action="Active" class="btn @(viewAction == "Active" ? "btn-success" : "btn-secondary")">Active</a>
+	<a asp-action="Closed" class="btn @(viewAction == "Closed" ? "btn-danger" : "btn-secondary")">Finished / Canceled</a>
 </div>
 
 <div class="row row-cols-1 row-cols-md-3 g-4">

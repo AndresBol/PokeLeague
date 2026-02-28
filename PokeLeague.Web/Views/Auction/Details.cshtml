@@ -16,10 +16,10 @@
             <dt class = "col-sm-4 h5 text-nowrap">
                 Categories:
             </dt>
-            <dd class = "col-sm-8">
+            <dd class="col-sm-8 text-nowrap">
                 @foreach(var category in Model.Card.CategoryCard)
                 {
-                    <div class="chip scondary">
+                    <div class="chip secondary me-1">
                         @category.Category.Name
                     </div>
                 }

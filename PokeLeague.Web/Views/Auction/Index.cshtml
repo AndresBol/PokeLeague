@@ -69,21 +69,32 @@
 							<p class="card-text mb-1">
 									  <strong>Min Increase:</strong> $@item.MinIncrease
 							   </p>
-						<p class="card-text">
-
-							@if(item.IsCanceled)
-							{
-							<span class="badge bg-danger">
-								Canceled
-							</span>
-							}else
-							{
-							<span class="badge bg-primary">
-								@item.AuctionBid.Count Bids
-							</span>
-							}
+							<p class="card-text">
+								@switch (item.Status)
+								{
+									case "Canceled":
+										<span class="badge bg-danger">
+										Canceled
+										</span>
+										break;
+									case "Scheduled":
+										<span class="badge bg-secondary">
+										Scheduled
+										</span>
+										break;
+									case "Finished":
+										<span class="badge bg-success">
+											Finished | @item.AuctionBid.Count Bids
+										</span>
+										break;
+									default:
+										<span class="badge bg-primary">
+											@item.AuctionBid.Count Bids
+										</span>
+										break;
+								}
 					
-						</p>
+							</p>
 
 						<div class="mt-auto">
 							<a asp-action="Details"

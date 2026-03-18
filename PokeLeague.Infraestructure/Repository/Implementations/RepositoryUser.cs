@@ -131,7 +131,7 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
         {
             try
             {
-                await _context.Database.BeginTransactionAsync();
+                //await _context.Database.BeginTransactionAsync();
 
                 var user = await _context.Set<User>()
                     .FirstOrDefaultAsync(u => u.Id == id);
@@ -143,11 +143,11 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
                 user.Email = email;
 
                 await _context.SaveChangesAsync();
-                await _context.Database.CommitTransactionAsync();
+                //await _context.Database.CommitTransactionAsync();
             }
             catch (Exception ex)
             {
-                await _context.Database.RollbackTransactionAsync();
+                //await _context.Database.RollbackTransactionAsync();
                 throw new Exception($"Error updating profile: {ex.Message}");
             }
         }
@@ -156,7 +156,7 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
         {
             try
             {
-                await _context.Database.BeginTransactionAsync();
+                //await _context.Database.BeginTransactionAsync();
 
                 var user = await _context.Set<User>()
                     .FirstOrDefaultAsync(u => u.Id == id);
@@ -167,11 +167,11 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
                 user.IsBlocked = !user.IsBlocked;
 
                 await _context.SaveChangesAsync();
-                await _context.Database.CommitTransactionAsync();
+                //await _context.Database.CommitTransactionAsync();
             }
             catch (Exception ex)
             {
-                await _context.Database.RollbackTransactionAsync();
+                //await _context.Database.RollbackTransactionAsync();
                 throw new Exception($"Error toggling block: {ex.Message}");
             }
         }

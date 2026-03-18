@@ -13,6 +13,8 @@ namespace PokeLeague.Infraestructure.Repository.Interfaces
         Task<User> FindByIdAsync(int id);
         Task<int> AddAsync(User user);
         Task UpdateAsync(User user);
-        Task DeleteAsync(int id); 
+        Task DeleteAsync(int id);
+        Task UpdateProfileAsync(int id, string username, string email);
+        Task ToggleBlockAsync(int id);
     }
 }

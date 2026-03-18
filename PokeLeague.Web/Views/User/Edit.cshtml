@@ -1,0 +1,20 @@
+﻿@model PokeLeague.Application.DTOs.UserDTO
+
+<h2>Edit User</h2>
+
+<form asp-action="Edit">
+	<input type="hidden" asp-for="Id" />
+
+	<div class="mb-3">
+		<label asp-for="Username" class="form-label"></label>
+		<input asp-for="Username" class="form-control" />
+	</div>
+
+	<div class="mb-3">
+		<label asp-for="Email" class="form-label"></label>
+		<input asp-for="Email" class="form-control" />
+	</div>
+
+	<button type="submit" class="btn btn-success">Save</button>
+	<a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-secondary">Cancel</a>
+</form>

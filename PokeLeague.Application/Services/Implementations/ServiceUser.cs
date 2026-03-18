@@ -56,5 +56,18 @@ namespace PokeLeague.Application.Services.Implementations
         {
             await _repository.DeleteAsync(id);
         }
+
+        public async Task UpdateProfileAsync(int id, string username, string email)
+        {
+
+            await _repository.UpdateProfileAsync(id,username,email);
+        }
+
+        public async Task ToggleBlockAsync(int id) 
+        {
+            
+            await _repository.ToggleBlockAsync(id);
+        
+        }
     }
 }

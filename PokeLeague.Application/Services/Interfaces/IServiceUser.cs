@@ -14,5 +14,9 @@ namespace PokeLeague.Application.Services.Interfaces
         Task<int> AddAsync(UserDTO userDto);
         Task UpdateAsync(UserDTO userDto);
         Task DeleteAsync(int id);
+
+        Task UpdateProfileAsync(int id, string username, string email);
+
+        Task ToggleBlockAsync(int id);
     }
 }

@@ -126,5 +126,54 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
                 throw new Exception($"Error deleting user: {ex.Message}");
             }
         }
+
+        public async Task UpdateProfileAsync(int id, string username, string email)
+        {
+            try
+            {
+                //await _context.Database.BeginTransactionAsync();
+
+                var user = await _context.Set<User>()
+                    .FirstOrDefaultAsync(u => u.Id == id);
+
+                if (user == null)
+                    throw new Exception($"User with ID {id} not found.");
+
+                user.Username = username;
+                user.Email = email;
+
+                await _context.SaveChangesAsync();
+                //await _context.Database.CommitTransactionAsync();
+            }
+            catch (Exception ex)
+            {
+                //await _context.Database.RollbackTransactionAsync();
+                throw new Exception($"Error updating profile: {ex.Message}");
+            }
+        }
+
+        public async Task ToggleBlockAsync(int id)
+        {
+            try
+            {
+                //await _context.Database.BeginTransactionAsync();
+
+                var user = await _context.Set<User>()
+                    .FirstOrDefaultAsync(u => u.Id == id);
+
+                if (user == null)
+                    throw new Exception($"User with ID {id} not found.");
+
+                user.IsBlocked = !user.IsBlocked;
+
+                await _context.SaveChangesAsync();
+                //await _context.Database.CommitTransactionAsync();
+            }
+            catch (Exception ex)
+            {
+                //await _context.Database.RollbackTransactionAsync();
+                throw new Exception($"Error toggling block: {ex.Message}");
+            }
+        }
     }
 }

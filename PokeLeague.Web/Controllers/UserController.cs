@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using PokeLeague.Application.DTOs;
 using PokeLeague.Application.Services.Interfaces;
 
 namespace PokeLeague.Web.Controllers
@@ -32,6 +33,36 @@ namespace PokeLeague.Web.Controllers
             }
 
             return View(user);
+        }
+
+        public async Task<IActionResult> Edit(int id)
+        {
+            var user= await _serviceUser.FindByIdAsync(id);
+
+            if(user == null) 
+                return NotFound();
+
+            return View(user);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(UserDTO user)
+        {
+            if (!ModelState.IsValid)
+                return View(user);
+
+            await _serviceUser.UpdateProfileAsync(user.Id, user.Username, user.Email);
+
+            return RedirectToAction("Details", new { id = user.Id });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ToggleBlock(int id) 
+        {
+            await _serviceUser.ToggleBlockAsync(id);
+            return RedirectToAction("Details" , new {id});
         }
     }
 }

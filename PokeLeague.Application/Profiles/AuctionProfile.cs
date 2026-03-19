@@ -8,7 +8,7 @@ namespace PokeLeague.Application.Profiles
     {
         public AuctionProfile()
         {
-            CreateMap<AuctionDTO, Auction>().ReverseMap();
+            CreateMap<Auction, AuctionDTO>();
 
             CreateMap<AuctionDTO, Auction>()
                 .ForMember(dest => dest.Id, orig => orig.MapFrom(o => o.Id))
@@ -20,9 +20,10 @@ namespace PokeLeague.Application.Profiles
                 .ForMember(dest => dest.MinIncrease, orig => orig.MapFrom(o => o.MinIncrease))
                 .ForMember(dest => dest.IsCanceled, orig => orig.MapFrom(o => o.IsCanceled))
                 .ForMember(dest => dest.IsActive, orig => orig.MapFrom(o => o.IsActive))
-                .ForMember(dest => dest.Card, orig => orig.MapFrom(o => o.Card))
-                .ForMember(dest => dest.PurchaseOrder, orig => orig.MapFrom(o => o.PurchaseOrder))
-                .ForMember(dest => dest.AuctionBid, orig => orig.MapFrom(o => o.AuctionBid));
+                .ForMember(dest => dest.Card, opt => opt.Ignore())
+                .ForMember(dest => dest.PurchaseOrder, opt => opt.Ignore())
+                .ForMember(dest => dest.AuctionBid, opt => opt.Ignore())
+                .ForMember(dest => dest.User, opt => opt.Ignore());
         }
     }
 }

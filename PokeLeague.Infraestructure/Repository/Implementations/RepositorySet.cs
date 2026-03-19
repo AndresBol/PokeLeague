@@ -21,20 +21,25 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
 
         public async Task<string> AddAsync(Set set)
         {
-            try
-            {
-                await _context.Database.BeginTransactionAsync();
-                await _context.Set<Set>().AddAsync(set);
-                await _context.SaveChangesAsync();
-                await _context.Database.CommitTransactionAsync();
+            var strategy = _context.Database.CreateExecutionStrategy();
 
-                return set.Id;
-            }
-            catch (Exception ex)
+            return await strategy.ExecuteAsync(async () =>
             {
-                await _context.Database.RollbackTransactionAsync();
-                throw new Exception($"Error adding set: {ex.Message}");
-            }
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
+                {
+                    await _context.Set<Set>().AddAsync(set);
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    return set.Id;
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    throw new Exception($"Error adding set: {ex.Message}");
+                }
+            });
         }
 
         public async Task<Set> FindByIdAsync(string id)
@@ -57,54 +62,63 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
 
         public async Task UpdateAsync(Set set)
         {
-            try
+            var strategy = _context.Database.CreateExecutionStrategy();
+
+            await strategy.ExecuteAsync(async () =>
             {
-                await _context.Database.BeginTransactionAsync();
-
-                var existingSet = await _context.Set<Set>()
-                    .FirstOrDefaultAsync(s => s.Id == set.Id);
-
-                if (existingSet == null)
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
                 {
-                    throw new Exception($"Set with ID {set.Id} not found.");
+                    var existingSet = await _context.Set<Set>()
+                        .FirstOrDefaultAsync(s => s.Id == set.Id);
+
+                    if (existingSet == null)
+                    {
+                        throw new Exception($"Set with ID {set.Id} not found.");
+                    }
+
+                    existingSet.Name = set.Name;
+                    existingSet.IsActive = set.IsActive;
+
+                    await _context.SaveChangesAsync();
+
+                    await transaction.CommitAsync();
                 }
-
-                existingSet.Name = set.Name;
-                existingSet.IsActive = set.IsActive;
-
-                await _context.SaveChangesAsync();
-
-                await _context.Database.CommitTransactionAsync();
-            }
-            catch (Exception ex)
-            {
-                await _context.Database.RollbackTransactionAsync();
-                throw new Exception($"Error updating set: {ex.Message}");
-            }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    throw new Exception($"Error updating set: {ex.Message}");
+                }
+            });
         }
 
         public async Task DeleteAsync(string id)
         {
-            try
-            {
-                await _context.Database.BeginTransactionAsync();
-                var set = await _context.Set<Set>().FirstOrDefaultAsync(s => s.Id == id);
+            var strategy = _context.Database.CreateExecutionStrategy();
 
-                if (set == null)
+            await strategy.ExecuteAsync(async () =>
+            {
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
                 {
-                    throw new Exception($"Set with ID {id} not found.");
+                    var set = await _context.Set<Set>().FirstOrDefaultAsync(s => s.Id == id);
+
+                    if (set == null)
+                    {
+                        throw new Exception($"Set with ID {id} not found.");
+                    }
+
+                    set.IsActive = false;
+                    await _context.SaveChangesAsync();
+
+                    await transaction.CommitAsync();
                 }
-
-                set.IsActive = false;
-                await _context.SaveChangesAsync();
-
-                await _context.Database.CommitTransactionAsync();
-            }
-            catch (Exception ex)
-            {
-                await _context.Database.RollbackTransactionAsync();
-                throw new Exception($"Error deleting set: {ex.Message}");
-            }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    throw new Exception($"Error deleting set: {ex.Message}");
+                }
+            });
         }
     }
 }

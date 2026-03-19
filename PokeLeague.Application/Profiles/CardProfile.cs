@@ -8,7 +8,8 @@ namespace PokeLeague.Application.Profiles
     {
         public CardProfile()
         {
-            CreateMap<CardDTO, Card>().ReverseMap();
+            CreateMap<Card, CardDTO>()
+                .ForMember(dest => dest.Language, orig => orig.MapFrom(o => o.LanguageCodeNavigation));
 
             CreateMap<CardDTO, Card>()
                 .ForMember(dest => dest.Id, orig => orig.MapFrom(o => o.Id))
@@ -22,14 +23,13 @@ namespace PokeLeague.Application.Profiles
                 .ForMember(dest => dest.IsNew, orig => orig.MapFrom(o => o.IsNew))
                 .ForMember(dest => dest.RegistrationDate, orig => orig.MapFrom(o => o.RegistrationDate))
                 .ForMember(dest => dest.IsActive, orig => orig.MapFrom(o => o.IsActive))
-                .ForMember(dest => dest.Set, orig => orig.MapFrom(o => o.Set))
-                .ForMember(dest => dest.Rarity, orig => orig.MapFrom(o => o.Rarity))
-                .ForMember(dest => dest.LanguageCodeNavigation, orig => orig.MapFrom(o => o.Language))
-                .ForMember(dest => dest.Image, orig => orig.MapFrom(o => o.Image))
-                .ForMember(dest => dest.CategoryCard, orig => orig.MapFrom(o => o.CategoryCard));
-
-            CreateMap<Card, CardDTO>()
-                .ForMember(dest => dest.Language, orig => orig.MapFrom(o => o.LanguageCodeNavigation));
+                .ForMember(dest => dest.Set, opt => opt.Ignore())
+                .ForMember(dest => dest.Rarity, opt => opt.Ignore())
+                .ForMember(dest => dest.LanguageCodeNavigation, opt => opt.Ignore())
+                .ForMember(dest => dest.Image, opt => opt.Ignore())
+                .ForMember(dest => dest.CategoryCard, opt => opt.Ignore())
+                .ForMember(dest => dest.User, opt => opt.Ignore())
+                .ForMember(dest => dest.Auction, opt => opt.Ignore());
         }
     }
 }

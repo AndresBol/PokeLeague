@@ -21,25 +21,35 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
 
         public async Task<int> AddAsync(Role role)
         {
-            try
-            {
-                await _context.Database.BeginTransactionAsync();
-                await _context.Set<Role>().AddAsync(role);
-                await _context.SaveChangesAsync();
-                await _context.Database.CommitTransactionAsync();
+            var strategy = _context.Database.CreateExecutionStrategy();
 
-                return role.Id;
-            }
-            catch (Exception ex)
+            return await strategy.ExecuteAsync(async () =>
             {
-                await _context.Database.RollbackTransactionAsync();
-                throw new Exception($"Error adding role: {ex.Message}");
-            }
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
+                {
+                    await _context.Set<Role>().AddAsync(role);
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    return role.Id;
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    throw new Exception($"Error adding role: {ex.Message}");
+                }
+            });
         }
 
         public async Task<Role> FindByIdAsync(int id)
         {
             var role = await _context.Set<Role>().AsNoTracking().FirstOrDefaultAsync(r => r.Id == id);
+            return role!;
+        }
+        public async Task<Role> FindByNameAsync(string name)
+        {
+            var role = await _context.Set<Role>().AsNoTracking().FirstOrDefaultAsync(r => r.Name == name);
             return role!;
         }
 
@@ -51,54 +61,63 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
 
         public async Task UpdateAsync(Role role)
         {
-            try
-            {
-                await _context.Database.BeginTransactionAsync();
-                
-                var existingRole = await _context.Set<Role>()
-                    .FirstOrDefaultAsync(r => r.Id == role.Id);
-                
-                if (existingRole == null)
-                {
-                    throw new Exception($"Role with ID {role.Id} not found.");
-                }
+            var strategy = _context.Database.CreateExecutionStrategy();
 
-                existingRole.Name = role.Name;
-                existingRole.IsActive = role.IsActive;
-                
-                await _context.SaveChangesAsync();
-                
-                await _context.Database.CommitTransactionAsync();
-            }
-            catch (Exception ex)
+            await strategy.ExecuteAsync(async () =>
             {
-                await _context.Database.RollbackTransactionAsync();
-                throw new Exception($"Error updating role: {ex.Message}");
-            }
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
+                {
+                    var existingRole = await _context.Set<Role>()
+                        .FirstOrDefaultAsync(r => r.Id == role.Id);
+
+                    if (existingRole == null)
+                    {
+                        throw new Exception($"Role with ID {role.Id} not found.");
+                    }
+
+                    existingRole.Name = role.Name;
+                    existingRole.IsActive = role.IsActive;
+
+                    await _context.SaveChangesAsync();
+
+                    await transaction.CommitAsync();
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    throw new Exception($"Error updating role: {ex.Message}");
+                }
+            });
         }
 
         public async Task DeleteAsync(int id)
         {
-            try
-            {
-                await _context.Database.BeginTransactionAsync();
-                var role = await _context.Set<Role>().FirstOrDefaultAsync(r => r.Id == id);
-                
-                if (role == null)
-                {
-                    throw new Exception($"Role with ID {id} not found.");
-                }
+            var strategy = _context.Database.CreateExecutionStrategy();
 
-                role.IsActive = false;
-                await _context.SaveChangesAsync();
-                
-                await _context.Database.CommitTransactionAsync();
-            }
-            catch (Exception ex)
+            await strategy.ExecuteAsync(async () =>
             {
-                await _context.Database.RollbackTransactionAsync();
-                throw new Exception($"Error deleting role: {ex.Message}");
-            }
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
+                {
+                    var role = await _context.Set<Role>().FirstOrDefaultAsync(r => r.Id == id);
+
+                    if (role == null)
+                    {
+                        throw new Exception($"Role with ID {id} not found.");
+                    }
+
+                    role.IsActive = false;
+                    await _context.SaveChangesAsync();
+
+                    await transaction.CommitAsync();
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    throw new Exception($"Error deleting role: {ex.Message}");
+                }
+            });
         }
     }
 }

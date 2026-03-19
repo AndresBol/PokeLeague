@@ -21,20 +21,25 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
 
         public async Task<int> AddAsync(AuctionBid auctionBid)
         {
-            try
-            {
-                await _context.Database.BeginTransactionAsync();
-                await _context.Set<AuctionBid>().AddAsync(auctionBid);
-                await _context.SaveChangesAsync();
-                await _context.Database.CommitTransactionAsync();
+            var strategy = _context.Database.CreateExecutionStrategy();
 
-                return auctionBid.Id;
-            }
-            catch (Exception ex)
+            return await strategy.ExecuteAsync(async () =>
             {
-                await _context.Database.RollbackTransactionAsync();
-                throw new Exception($"Error adding auction bid: {ex.Message}");
-            }
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
+                {
+                    await _context.Set<AuctionBid>().AddAsync(auctionBid);
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    return auctionBid.Id;
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    throw new Exception($"Error adding auction bid: {ex.Message}");
+                }
+            });
         }
 
         public async Task<AuctionBid> FindByIdAsync(int id)
@@ -69,57 +74,66 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
 
         public async Task UpdateAsync(AuctionBid auctionBid)
         {
-            try
+            var strategy = _context.Database.CreateExecutionStrategy();
+
+            await strategy.ExecuteAsync(async () =>
             {
-                await _context.Database.BeginTransactionAsync();
-
-                var existingAuctionBid = await _context.Set<AuctionBid>()
-                    .FirstOrDefaultAsync(ab => ab.Id == auctionBid.Id);
-
-                if (existingAuctionBid == null)
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
                 {
-                    throw new Exception($"AuctionBid with ID {auctionBid.Id} not found.");
+                    var existingAuctionBid = await _context.Set<AuctionBid>()
+                        .FirstOrDefaultAsync(ab => ab.Id == auctionBid.Id);
+
+                    if (existingAuctionBid == null)
+                    {
+                        throw new Exception($"AuctionBid with ID {auctionBid.Id} not found.");
+                    }
+
+                    existingAuctionBid.AuctionId = auctionBid.AuctionId;
+                    existingAuctionBid.UserId = auctionBid.UserId;
+                    existingAuctionBid.BidAmount = auctionBid.BidAmount;
+                    existingAuctionBid.BidDate = auctionBid.BidDate;
+                    existingAuctionBid.IsActive = auctionBid.IsActive;
+
+                    await _context.SaveChangesAsync();
+
+                    await transaction.CommitAsync();
                 }
-
-                existingAuctionBid.AuctionId = auctionBid.AuctionId;
-                existingAuctionBid.UserId = auctionBid.UserId;
-                existingAuctionBid.BidAmount = auctionBid.BidAmount;
-                existingAuctionBid.BidDate = auctionBid.BidDate;
-                existingAuctionBid.IsActive = auctionBid.IsActive;
-
-                await _context.SaveChangesAsync();
-
-                await _context.Database.CommitTransactionAsync();
-            }
-            catch (Exception ex)
-            {
-                await _context.Database.RollbackTransactionAsync();
-                throw new Exception($"Error updating auction bid: {ex.Message}");
-            }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    throw new Exception($"Error updating auction bid: {ex.Message}");
+                }
+            });
         }
 
         public async Task DeleteAsync(int id)
         {
-            try
-            {
-                await _context.Database.BeginTransactionAsync();
-                var auctionBid = await _context.Set<AuctionBid>().FirstOrDefaultAsync(ab => ab.Id == id);
+            var strategy = _context.Database.CreateExecutionStrategy();
 
-                if (auctionBid == null)
+            await strategy.ExecuteAsync(async () =>
+            {
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
                 {
-                    throw new Exception($"AuctionBid with ID {id} not found.");
+                    var auctionBid = await _context.Set<AuctionBid>().FirstOrDefaultAsync(ab => ab.Id == id);
+
+                    if (auctionBid == null)
+                    {
+                        throw new Exception($"AuctionBid with ID {id} not found.");
+                    }
+
+                    auctionBid.IsActive = false;
+                    await _context.SaveChangesAsync();
+
+                    await transaction.CommitAsync();
                 }
-
-                auctionBid.IsActive = false;
-                await _context.SaveChangesAsync();
-
-                await _context.Database.CommitTransactionAsync();
-            }
-            catch (Exception ex)
-            {
-                await _context.Database.RollbackTransactionAsync();
-                throw new Exception($"Error deleting auction bid: {ex.Message}");
-            }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    throw new Exception($"Error deleting auction bid: {ex.Message}");
+                }
+            });
         }
     }
 }

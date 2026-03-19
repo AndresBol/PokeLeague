@@ -21,20 +21,25 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
 
         public async Task<int> AddAsync(Auction auction)
         {
-            try
-            {
-                await _context.Database.BeginTransactionAsync();
-                await _context.Set<Auction>().AddAsync(auction);
-                await _context.SaveChangesAsync();
-                await _context.Database.CommitTransactionAsync();
+            var strategy = _context.Database.CreateExecutionStrategy();
 
-                return auction.Id;
-            }
-            catch (Exception ex)
+            return await strategy.ExecuteAsync(async () =>
             {
-                await _context.Database.RollbackTransactionAsync();
-                throw new Exception($"Error adding auction: {ex.Message}");
-            }
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
+                {
+                    await _context.Set<Auction>().AddAsync(auction);
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    return auction.Id;
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    throw new Exception($"Error adding auction: {ex.Message}");
+                }
+            });
         }
 
         public async Task<Auction?> FindActiveByCardIdAsync(int cardId)
@@ -92,60 +97,69 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
 
         public async Task UpdateAsync(Auction auction)
         {
-            try
+            var strategy = _context.Database.CreateExecutionStrategy();
+
+            await strategy.ExecuteAsync(async () =>
             {
-                await _context.Database.BeginTransactionAsync();
-
-                var existingAuction = await _context.Set<Auction>()
-                    .FirstOrDefaultAsync(a => a.Id == auction.Id);
-
-                if (existingAuction == null)
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
                 {
-                    throw new Exception($"Auction with ID {auction.Id} not found.");
+                    var existingAuction = await _context.Set<Auction>()
+                        .FirstOrDefaultAsync(a => a.Id == auction.Id);
+
+                    if (existingAuction == null)
+                    {
+                        throw new Exception($"Auction with ID {auction.Id} not found.");
+                    }
+
+                    existingAuction.UserId = auction.UserId;
+                    existingAuction.CardId = auction.CardId;
+                    existingAuction.StartDate = auction.StartDate;
+                    existingAuction.EndDate = auction.EndDate;
+                    existingAuction.BasePrice = auction.BasePrice;
+                    existingAuction.MinIncrease = auction.MinIncrease;
+                    existingAuction.IsCanceled = auction.IsCanceled;
+                    existingAuction.IsActive = auction.IsActive;
+
+                    await _context.SaveChangesAsync();
+
+                    await transaction.CommitAsync();
                 }
-
-                existingAuction.UserId = auction.UserId;
-                existingAuction.CardId = auction.CardId;
-                existingAuction.StartDate = auction.StartDate;
-                existingAuction.EndDate = auction.EndDate;
-                existingAuction.BasePrice = auction.BasePrice;
-                existingAuction.MinIncrease = auction.MinIncrease;
-                existingAuction.IsCanceled = auction.IsCanceled;
-                existingAuction.IsActive = auction.IsActive;
-
-                await _context.SaveChangesAsync();
-
-                await _context.Database.CommitTransactionAsync();
-            }
-            catch (Exception ex)
-            {
-                await _context.Database.RollbackTransactionAsync();
-                throw new Exception($"Error updating auction: {ex.Message}");
-            }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    throw new Exception($"Error updating auction: {ex.Message}");
+                }
+            });
         }
 
         public async Task DeleteAsync(int id)
         {
-            try
-            {
-                await _context.Database.BeginTransactionAsync();
-                var auction = await _context.Set<Auction>().FirstOrDefaultAsync(a => a.Id == id);
+            var strategy = _context.Database.CreateExecutionStrategy();
 
-                if (auction == null)
+            await strategy.ExecuteAsync(async () =>
+            {
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
                 {
-                    throw new Exception($"Auction with ID {id} not found.");
+                    var auction = await _context.Set<Auction>().FirstOrDefaultAsync(a => a.Id == id);
+
+                    if (auction == null)
+                    {
+                        throw new Exception($"Auction with ID {id} not found.");
+                    }
+
+                    auction.IsActive = false;
+                    await _context.SaveChangesAsync();
+
+                    await transaction.CommitAsync();
                 }
-
-                auction.IsActive = false;
-                await _context.SaveChangesAsync();
-
-                await _context.Database.CommitTransactionAsync();
-            }
-            catch (Exception ex)
-            {
-                await _context.Database.RollbackTransactionAsync();
-                throw new Exception($"Error deleting auction: {ex.Message}");
-            }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    throw new Exception($"Error deleting auction: {ex.Message}");
+                }
+            });
         }
     }
 }

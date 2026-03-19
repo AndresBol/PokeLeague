@@ -8,12 +8,13 @@ namespace PokeLeague.Application.Profiles
     {
         public SetProfile()
         {
-            CreateMap<SetDTO, Set>().ReverseMap();
+            CreateMap<Set, SetDTO>();
 
             CreateMap<SetDTO, Set>()
                 .ForMember(dest => dest.Id, orig => orig.MapFrom(o => o.Id))
                 .ForMember(dest => dest.Name, orig => orig.MapFrom(o => o.Name))
-                .ForMember(dest => dest.IsActive, orig => orig.MapFrom(o => o.IsActive));
+                .ForMember(dest => dest.IsActive, orig => orig.MapFrom(o => o.IsActive))
+                .ForMember(dest => dest.Card, opt => opt.Ignore());
         }
     }
 }

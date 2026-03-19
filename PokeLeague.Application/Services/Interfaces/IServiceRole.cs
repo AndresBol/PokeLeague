@@ -11,6 +11,7 @@ namespace PokeLeague.Application.Services.Interfaces
     {
         Task<ICollection<RoleDTO>> ListAsync();
         Task<RoleDTO> FindByIdAsync(int id);
+        Task<RoleDTO> FindByNameAsync(string name);
         Task<int> AddAsync(RoleDTO roleDto);
         Task UpdateAsync(RoleDTO roleDto);
         Task DeleteAsync(int id);

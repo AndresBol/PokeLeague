@@ -11,6 +11,7 @@ namespace PokeLeague.Infraestructure.Repository.Interfaces
     {
         Task<ICollection<Role>> ListAsync();
         Task<Role> FindByIdAsync(int id);
+        Task<Role> FindByNameAsync(string name);
         Task<int> AddAsync(Role role);
         Task UpdateAsync(Role role);
         Task DeleteAsync(int id); 

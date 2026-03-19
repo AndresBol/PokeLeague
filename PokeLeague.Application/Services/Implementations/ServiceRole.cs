@@ -38,6 +38,14 @@ namespace PokeLeague.Application.Services.Implementations
             return roleDTO;
         }
 
+        public async Task<RoleDTO> FindByNameAsync(string name)
+        {
+            var role = await _repository.FindByNameAsync(name);
+            var roleDTO = _mapper.Map<RoleDTO>(role);
+
+            return roleDTO;
+        }
+
         public async Task<ICollection<RoleDTO>> ListAsync()
         {
             var roles = await _repository.ListAsync();

@@ -21,20 +21,25 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
 
         public async Task<string> AddAsync(Language language)
         {
-            try
-            {
-                await _context.Database.BeginTransactionAsync();
-                await _context.Set<Language>().AddAsync(language);
-                await _context.SaveChangesAsync();
-                await _context.Database.CommitTransactionAsync();
+            var strategy = _context.Database.CreateExecutionStrategy();
 
-                return language.LanguageCode;
-            }
-            catch (Exception ex)
+            return await strategy.ExecuteAsync(async () =>
             {
-                await _context.Database.RollbackTransactionAsync();
-                throw new Exception($"Error adding language: {ex.Message}");
-            }
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
+                {
+                    await _context.Set<Language>().AddAsync(language);
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    return language.LanguageCode;
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    throw new Exception($"Error adding language: {ex.Message}");
+                }
+            });
         }
 
         public async Task<Language> FindByIdAsync(string languageCode)
@@ -57,54 +62,63 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
 
         public async Task UpdateAsync(Language language)
         {
-            try
+            var strategy = _context.Database.CreateExecutionStrategy();
+
+            await strategy.ExecuteAsync(async () =>
             {
-                await _context.Database.BeginTransactionAsync();
-
-                var existingLanguage = await _context.Set<Language>()
-                    .FirstOrDefaultAsync(l => l.LanguageCode == language.LanguageCode);
-
-                if (existingLanguage == null)
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
                 {
-                    throw new Exception($"Language with code {language.LanguageCode} not found.");
+                    var existingLanguage = await _context.Set<Language>()
+                        .FirstOrDefaultAsync(l => l.LanguageCode == language.LanguageCode);
+
+                    if (existingLanguage == null)
+                    {
+                        throw new Exception($"Language with code {language.LanguageCode} not found.");
+                    }
+
+                    existingLanguage.LanguageName = language.LanguageName;
+                    existingLanguage.IsActive = language.IsActive;
+
+                    await _context.SaveChangesAsync();
+
+                    await transaction.CommitAsync();
                 }
-
-                existingLanguage.LanguageName = language.LanguageName;
-                existingLanguage.IsActive = language.IsActive;
-
-                await _context.SaveChangesAsync();
-
-                await _context.Database.CommitTransactionAsync();
-            }
-            catch (Exception ex)
-            {
-                await _context.Database.RollbackTransactionAsync();
-                throw new Exception($"Error updating language: {ex.Message}");
-            }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    throw new Exception($"Error updating language: {ex.Message}");
+                }
+            });
         }
 
         public async Task DeleteAsync(string languageCode)
         {
-            try
-            {
-                await _context.Database.BeginTransactionAsync();
-                var language = await _context.Set<Language>().FirstOrDefaultAsync(l => l.LanguageCode == languageCode);
+            var strategy = _context.Database.CreateExecutionStrategy();
 
-                if (language == null)
+            await strategy.ExecuteAsync(async () =>
+            {
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
                 {
-                    throw new Exception($"Language with code {languageCode} not found.");
+                    var language = await _context.Set<Language>().FirstOrDefaultAsync(l => l.LanguageCode == languageCode);
+
+                    if (language == null)
+                    {
+                        throw new Exception($"Language with code {languageCode} not found.");
+                    }
+
+                    language.IsActive = false;
+                    await _context.SaveChangesAsync();
+
+                    await transaction.CommitAsync();
                 }
-
-                language.IsActive = false;
-                await _context.SaveChangesAsync();
-
-                await _context.Database.CommitTransactionAsync();
-            }
-            catch (Exception ex)
-            {
-                await _context.Database.RollbackTransactionAsync();
-                throw new Exception($"Error deleting language: {ex.Message}");
-            }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    throw new Exception($"Error deleting language: {ex.Message}");
+                }
+            });
         }
     }
 }

@@ -22,5 +22,6 @@ namespace PokeLeague.Application.DTOs
         public ICollection<AuctionBidDTO> AuctionBid { get; set; } = new List<AuctionBidDTO>();
         public bool IsActive { get; set; }
         public RoleDTO Role { get; set; } = new RoleDTO();
+        public ICollection<CardDTO> Card { get; set; } = new List<CardDTO>();
     }
 }

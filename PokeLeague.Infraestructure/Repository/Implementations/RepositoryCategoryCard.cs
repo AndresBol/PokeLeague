@@ -21,20 +21,25 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
 
         public async Task<int> AddAsync(CategoryCard categoryCard)
         {
-            try
-            {
-                await _context.Database.BeginTransactionAsync();
-                await _context.Set<CategoryCard>().AddAsync(categoryCard);
-                await _context.SaveChangesAsync();
-                await _context.Database.CommitTransactionAsync();
+            var strategy = _context.Database.CreateExecutionStrategy();
 
-                return categoryCard.Id;
-            }
-            catch (Exception ex)
+            return await strategy.ExecuteAsync(async () =>
             {
-                await _context.Database.RollbackTransactionAsync();
-                throw new Exception($"Error adding category card: {ex.Message}");
-            }
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
+                {
+                    await _context.Set<CategoryCard>().AddAsync(categoryCard);
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    return categoryCard.Id;
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    throw new Exception($"Error adding category card: {ex.Message}");
+                }
+            });
         }
 
         public async Task<CategoryCard> FindByIdAsync(int id)
@@ -67,55 +72,64 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
 
         public async Task UpdateAsync(CategoryCard categoryCard)
         {
-            try
+            var strategy = _context.Database.CreateExecutionStrategy();
+
+            await strategy.ExecuteAsync(async () =>
             {
-                await _context.Database.BeginTransactionAsync();
-
-                var existingCategoryCard = await _context.Set<CategoryCard>()
-                    .FirstOrDefaultAsync(cc => cc.Id == categoryCard.Id);
-
-                if (existingCategoryCard == null)
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
                 {
-                    throw new Exception($"CategoryCard with ID {categoryCard.Id} not found.");
+                    var existingCategoryCard = await _context.Set<CategoryCard>()
+                        .FirstOrDefaultAsync(cc => cc.Id == categoryCard.Id);
+
+                    if (existingCategoryCard == null)
+                    {
+                        throw new Exception($"CategoryCard with ID {categoryCard.Id} not found.");
+                    }
+
+                    existingCategoryCard.CardId = categoryCard.CardId;
+                    existingCategoryCard.CategoryId = categoryCard.CategoryId;
+                    existingCategoryCard.IsActive = categoryCard.IsActive;
+
+                    await _context.SaveChangesAsync();
+
+                    await transaction.CommitAsync();
                 }
-
-                existingCategoryCard.CardId = categoryCard.CardId;
-                existingCategoryCard.CategoryId = categoryCard.CategoryId;
-                existingCategoryCard.IsActive = categoryCard.IsActive;
-
-                await _context.SaveChangesAsync();
-
-                await _context.Database.CommitTransactionAsync();
-            }
-            catch (Exception ex)
-            {
-                await _context.Database.RollbackTransactionAsync();
-                throw new Exception($"Error updating category card: {ex.Message}");
-            }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    throw new Exception($"Error updating category card: {ex.Message}");
+                }
+            });
         }
 
         public async Task DeleteAsync(int id)
         {
-            try
-            {
-                await _context.Database.BeginTransactionAsync();
-                var categoryCard = await _context.Set<CategoryCard>().FirstOrDefaultAsync(cc => cc.Id == id);
+            var strategy = _context.Database.CreateExecutionStrategy();
 
-                if (categoryCard == null)
+            await strategy.ExecuteAsync(async () =>
+            {
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
                 {
-                    throw new Exception($"CategoryCard with ID {id} not found.");
+                    var categoryCard = await _context.Set<CategoryCard>().FirstOrDefaultAsync(cc => cc.Id == id);
+
+                    if (categoryCard == null)
+                    {
+                        throw new Exception($"CategoryCard with ID {id} not found.");
+                    }
+
+                    categoryCard.IsActive = false;
+                    await _context.SaveChangesAsync();
+
+                    await transaction.CommitAsync();
                 }
-
-                categoryCard.IsActive = false;
-                await _context.SaveChangesAsync();
-
-                await _context.Database.CommitTransactionAsync();
-            }
-            catch (Exception ex)
-            {
-                await _context.Database.RollbackTransactionAsync();
-                throw new Exception($"Error deleting category card: {ex.Message}");
-            }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    throw new Exception($"Error deleting category card: {ex.Message}");
+                }
+            });
         }
     }
 }

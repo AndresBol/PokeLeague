@@ -1,0 +1,227 @@
+@model PokeLeague.Application.DTOs.AuctionDTO
+
+@{
+    ViewData["Title"] = "Create";
+}
+
+<h1>Create Auction</h1>
+
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="Create" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="form-group">
+                <label asp-for="UserId" class="form-label"></label>
+                <select disabled asp-for="UserId"
+                        class="form-select"
+                        asp-items="@(new SelectList(ViewBag.ListUser, "Id", "Username"))">
+                </select>
+                <input type="hidden" asp-for="UserId" />
+                <span asp-validation-for="UserId" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="CardId" class="control-label"></label>
+                <select asp-for="CardId"
+                        class="form-select">
+                </select>
+                <span id="cardActiveError" class="text-danger"></span>
+                <span asp-validation-for="CardId" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="StartDate" class="control-label"></label>
+                <div class="d-flex gap-2">
+                    <input type="date" id="StartDateDate" class="form-control" />
+                    <input type="time" id="StartDateTime" class="form-control" />
+                </div>
+                <input type="hidden" asp-for="StartDate" />
+                <span id="StartDateFieldError" class="text-danger"></span>
+                <span asp-validation-for="StartDate" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="EndDate" class="control-label"></label>
+                <div class="d-flex gap-2">
+                    <input type="date" id="EndDateDate" class="form-control" />
+                    <input type="time" id="EndDateTime" class="form-control" />
+                </div>
+                <input type="hidden" asp-for="EndDate" />
+                <span id="EndDateFieldError" class="text-danger"></span>
+                <span id="endDateError" class="text-danger"></span>
+                <span asp-validation-for="EndDate" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="BasePrice" class="control-label"></label>
+                <input asp-for="BasePrice" class="form-control" />
+                <span asp-validation-for="BasePrice" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="MinIncrease" class="control-label"></label>
+                <input asp-for="MinIncrease" class="form-control" />
+                <span asp-validation-for="MinIncrease" class="text-danger"></span>
+            </div>
+            <div class="form-group d-flex flex-column align-items-stretch justify-content-center mt-4">
+                <input type="submit" value="Create" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="d-flex flex-column align-items-start justify-content-end my-5 mx-2">
+    <a asp-action="Index" class="btn btn-secondary align-items-center"><h3><i class="bi bi-arrow-return-left me-3"></i>Back to list</h3></a>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+
+    <script>
+        const userSelect = document.getElementById("UserId");
+        const cardSelect = document.getElementById("CardId");
+        const endDateError = document.getElementById("endDateError");
+
+        async function refreshCardSelect(userId) {
+            cardSelect.innerHTML = '';
+            clearCardError();
+            if (!userId) return;
+
+            const response = await fetch(`@Url.Action("GetCardsByUser")?userId=${userId}`);
+            const cards = await response.json();
+
+            for (const card of cards) {
+                const option = document.createElement("option");
+                option.value = card.id;
+                option.text = card.name;
+                cardSelect.appendChild(option);
+            }
+
+            if (cards.length > 0) {
+                await validateCardActiveAuction(cardSelect.value);
+            }
+        }
+
+        function clearCardError() {
+            const errorSpan = document.getElementById("cardActiveError");
+            if (errorSpan) errorSpan.textContent = "";
+        }
+
+        async function validateCardActiveAuction(cardId) {
+            clearCardError();
+            if (!cardId) return true;
+
+            const response = await fetch(`@Url.Action("HasActiveAuction")?cardId=${cardId}`);
+            const result = await response.json();
+
+            if (result.hasActive) {
+                document.getElementById("cardActiveError").textContent = "This card already has an active auction.";
+                return false;
+            }
+            return true;
+        }
+
+        userSelect.addEventListener("change", () => refreshCardSelect(userSelect.value));
+        cardSelect.addEventListener("change", () => validateCardActiveAuction(cardSelect.value));
+
+        //TODO: Replace this once signIn is implemented
+        const userId = 8;
+        userSelect.value = userId;
+        document.querySelector('input[type="hidden"][name="UserId"]').value = userId;
+        refreshCardSelect(userId);
+
+        function syncDateTime(prefix) {
+            const date = document.getElementById(`${prefix}Date`).value;
+            const time = document.getElementById(`${prefix}Time`).value;
+            if (date && time) {
+                document.getElementById(prefix).value = `${date}T${time}`;
+            } else {
+                document.getElementById(prefix).value = '';
+            }
+            validateDateTimeFields(prefix);
+            validateEndDate();
+        }
+
+        function validateDateTimeFields(prefix) {
+            const date = document.getElementById(`${prefix}Date`).value;
+            const time = document.getElementById(`${prefix}Time`).value;
+            const errorSpan = document.getElementById(`${prefix}FieldError`);
+
+            if (!date && !time) {
+                errorSpan.textContent = "";
+                return true;
+            }
+            if (!date) {
+                errorSpan.textContent = "Please select a date.";
+                return false;
+            }
+            if (!time) {
+                errorSpan.textContent = "Please select a time.";
+                return false;
+            }
+
+            errorSpan.textContent = "";
+            return true;
+        }
+
+        function validateEndDate() {
+            const start = document.getElementById("StartDate").value;
+            const end = document.getElementById("EndDate").value;
+
+            if (start && end && new Date(end) <= new Date(start)) {
+                endDateError.textContent = "End date must be after start date.";
+                return false;
+            }
+
+            endDateError.textContent = "";
+            return true;
+        }
+
+        const dateTimeFields = ["StartDate", "EndDate"];
+        for (const prefix of dateTimeFields) {
+            document.getElementById(`${prefix}Date`).addEventListener("change", () => syncDateTime(prefix));
+            document.getElementById(`${prefix}Time`).addEventListener("change", () => syncDateTime(prefix));
+        }
+
+        const now = new Date();
+        const pad = (n) => String(n).padStart(2, '0');
+        const todayDate = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+        const currentTime = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
+        document.getElementById("StartDateDate").value = todayDate;
+        document.getElementById("StartDateTime").value = currentTime;
+        syncDateTime("StartDate");
+
+        document.querySelector('form').addEventListener("submit", async function (e) {
+            e.preventDefault();
+
+            let isValid = true;
+
+            for (const prefix of dateTimeFields) {
+                if (!validateDateTimeFields(prefix)) {
+                    isValid = false;
+                }
+                const hiddenValue = document.getElementById(prefix).value;
+                if (!hiddenValue) {
+                    const errorSpan = document.getElementById(`${prefix}FieldError`);
+                    if (!errorSpan.textContent) {
+                        errorSpan.textContent = "Please select both a date and a time.";
+                    }
+                    isValid = false;
+                }
+            }
+
+            if (!validateEndDate()) {
+                isValid = false;
+            }
+
+            const cardId = cardSelect.value;
+            if (cardId) {
+                const cardValid = await validateCardActiveAuction(cardId);
+                if (!cardValid) {
+                    isValid = false;
+                }
+            }
+
+            if (isValid) {
+                this.submit();
+            }
+        });
+    </script>
+}

@@ -10,6 +10,7 @@ namespace PokeLeague.Infraestructure.Repository.Interfaces
     public interface IRepositoryUser
     {
         Task<ICollection<User>> ListAsync();
+        Task<ICollection<User>> ListByRoleIdAsync(int roleId);
         Task<User> FindByIdAsync(int id);
         Task<int> AddAsync(User user);
         Task UpdateAsync(User user);

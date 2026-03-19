@@ -21,20 +21,25 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
 
         public async Task<int> AddAsync(PurchaseOrder purchaseOrder)
         {
-            try
-            {
-                await _context.Database.BeginTransactionAsync();
-                await _context.Set<PurchaseOrder>().AddAsync(purchaseOrder);
-                await _context.SaveChangesAsync();
-                await _context.Database.CommitTransactionAsync();
+            var strategy = _context.Database.CreateExecutionStrategy();
 
-                return purchaseOrder.Id;
-            }
-            catch (Exception ex)
+            return await strategy.ExecuteAsync(async () =>
             {
-                await _context.Database.RollbackTransactionAsync();
-                throw new Exception($"Error adding purchase order: {ex.Message}");
-            }
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
+                {
+                    await _context.Set<PurchaseOrder>().AddAsync(purchaseOrder);
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    return purchaseOrder.Id;
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    throw new Exception($"Error adding purchase order: {ex.Message}");
+                }
+            });
         }
 
         public async Task<PurchaseOrder> FindByIdAsync(int id)
@@ -63,57 +68,66 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
 
         public async Task UpdateAsync(PurchaseOrder purchaseOrder)
         {
-            try
+            var strategy = _context.Database.CreateExecutionStrategy();
+
+            await strategy.ExecuteAsync(async () =>
             {
-                await _context.Database.BeginTransactionAsync();
-
-                var existingPurchaseOrder = await _context.Set<PurchaseOrder>()
-                    .FirstOrDefaultAsync(po => po.Id == purchaseOrder.Id);
-
-                if (existingPurchaseOrder == null)
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
                 {
-                    throw new Exception($"PurchaseOrder with ID {purchaseOrder.Id} not found.");
+                    var existingPurchaseOrder = await _context.Set<PurchaseOrder>()
+                        .FirstOrDefaultAsync(po => po.Id == purchaseOrder.Id);
+
+                    if (existingPurchaseOrder == null)
+                    {
+                        throw new Exception($"PurchaseOrder with ID {purchaseOrder.Id} not found.");
+                    }
+
+                    existingPurchaseOrder.AuctionId = purchaseOrder.AuctionId;
+                    existingPurchaseOrder.UserId = purchaseOrder.UserId;
+                    existingPurchaseOrder.PurchaseAmount = purchaseOrder.PurchaseAmount;
+                    existingPurchaseOrder.IsPaid = purchaseOrder.IsPaid;
+                    existingPurchaseOrder.IsActive = purchaseOrder.IsActive;
+
+                    await _context.SaveChangesAsync();
+
+                    await transaction.CommitAsync();
                 }
-
-                existingPurchaseOrder.AuctionId = purchaseOrder.AuctionId;
-                existingPurchaseOrder.UserId = purchaseOrder.UserId;
-                existingPurchaseOrder.PurchaseAmount = purchaseOrder.PurchaseAmount;
-                existingPurchaseOrder.IsPaid = purchaseOrder.IsPaid;
-                existingPurchaseOrder.IsActive = purchaseOrder.IsActive;
-
-                await _context.SaveChangesAsync();
-
-                await _context.Database.CommitTransactionAsync();
-            }
-            catch (Exception ex)
-            {
-                await _context.Database.RollbackTransactionAsync();
-                throw new Exception($"Error updating purchase order: {ex.Message}");
-            }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    throw new Exception($"Error updating purchase order: {ex.Message}");
+                }
+            });
         }
 
         public async Task DeleteAsync(int id)
         {
-            try
-            {
-                await _context.Database.BeginTransactionAsync();
-                var purchaseOrder = await _context.Set<PurchaseOrder>().FirstOrDefaultAsync(po => po.Id == id);
+            var strategy = _context.Database.CreateExecutionStrategy();
 
-                if (purchaseOrder == null)
+            await strategy.ExecuteAsync(async () =>
+            {
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
                 {
-                    throw new Exception($"PurchaseOrder with ID {id} not found.");
+                    var purchaseOrder = await _context.Set<PurchaseOrder>().FirstOrDefaultAsync(po => po.Id == id);
+
+                    if (purchaseOrder == null)
+                    {
+                        throw new Exception($"PurchaseOrder with ID {id} not found.");
+                    }
+
+                    purchaseOrder.IsActive = false;
+                    await _context.SaveChangesAsync();
+
+                    await transaction.CommitAsync();
                 }
-
-                purchaseOrder.IsActive = false;
-                await _context.SaveChangesAsync();
-
-                await _context.Database.CommitTransactionAsync();
-            }
-            catch (Exception ex)
-            {
-                await _context.Database.RollbackTransactionAsync();
-                throw new Exception($"Error deleting purchase order: {ex.Message}");
-            }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    throw new Exception($"Error deleting purchase order: {ex.Message}");
+                }
+            });
         }
     }
 }

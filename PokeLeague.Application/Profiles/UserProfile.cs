@@ -8,7 +8,7 @@ namespace PokeLeague.Application.Profiles
     {
         public UserProfile()
         {
-            CreateMap<UserDTO, User>().ReverseMap();
+            CreateMap<User, UserDTO>();
 
             CreateMap<UserDTO, User>()
                 .ForMember(dest => dest.Id, orig => orig.MapFrom(o => o.Id))
@@ -18,7 +18,11 @@ namespace PokeLeague.Application.Profiles
                 .ForMember(dest => dest.IsBlocked, orig => orig.MapFrom(o => o.IsBlocked))
                 .ForMember(dest => dest.SignupDate, orig => orig.MapFrom(o => o.SignupDate))
                 .ForMember(dest => dest.IsActive, orig => orig.MapFrom(o => o.IsActive))
-                .ForMember(dest => dest.Role, orig => orig.MapFrom(o => o.Role));
+                .ForMember(dest => dest.Role, opt => opt.Ignore())
+                .ForMember(dest => dest.Card, opt => opt.Ignore())
+                .ForMember(dest => dest.Auction, opt => opt.Ignore())
+                .ForMember(dest => dest.AuctionBid, opt => opt.Ignore())
+                .ForMember(dest => dest.PurchaseOrder, opt => opt.Ignore());
         }
     }
 }

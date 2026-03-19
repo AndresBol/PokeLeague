@@ -21,20 +21,25 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
 
         public async Task<string> AddAsync(Rarity rarity)
         {
-            try
-            {
-                await _context.Database.BeginTransactionAsync();
-                await _context.Set<Rarity>().AddAsync(rarity);
-                await _context.SaveChangesAsync();
-                await _context.Database.CommitTransactionAsync();
+            var strategy = _context.Database.CreateExecutionStrategy();
 
-                return rarity.Id;
-            }
-            catch (Exception ex)
+            return await strategy.ExecuteAsync(async () =>
             {
-                await _context.Database.RollbackTransactionAsync();
-                throw new Exception($"Error adding rarity: {ex.Message}");
-            }
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
+                {
+                    await _context.Set<Rarity>().AddAsync(rarity);
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    return rarity.Id;
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    throw new Exception($"Error adding rarity: {ex.Message}");
+                }
+            });
         }
 
         public async Task<Rarity> FindByIdAsync(string id)
@@ -56,59 +61,64 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
 
         public async Task UpdateAsync(Rarity rarity)
         {
-            try
+            var strategy = _context.Database.CreateExecutionStrategy();
+
+            await strategy.ExecuteAsync(async () =>
             {
-                await _context.Database.BeginTransactionAsync();
-
-                var existingRarity = await _context.Set<Rarity>()
-                    .FirstOrDefaultAsync(r => r.Id == rarity.Id);
-
-                if (existingRarity == null)
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
                 {
-                    throw new Exception($"Rarity with ID {rarity.Id} not found.");
+                    var existingRarity = await _context.Set<Rarity>()
+                        .FirstOrDefaultAsync(r => r.Id == rarity.Id);
+
+                    if (existingRarity == null)
+                    {
+                        throw new Exception($"Rarity with ID {rarity.Id} not found.");
+                    }
+
+                    existingRarity.Name = rarity.Name;
+                    existingRarity.SortOrder = rarity.SortOrder;
+                    existingRarity.IsActive = rarity.IsActive;
+
+                    await _context.SaveChangesAsync();
+
+                    await transaction.CommitAsync();
                 }
-
-                existingRarity.Name = rarity.Name;
-                existingRarity.SortOrder = rarity.SortOrder;
-                existingRarity.IsActive = rarity.IsActive;
-
-                await _context.SaveChangesAsync();
-
-                await _context.Database.CommitTransactionAsync();
-
-            }
-            catch (Exception ex)
-            {
-                await _context.Database.RollbackTransactionAsync();
-                throw new Exception($"Error updating rarity: {ex.Message}");
-            }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    throw new Exception($"Error updating rarity: {ex.Message}");
+                }
+            });
         }
 
         public async Task DeleteAsync(string id)
         {
-            try
-            {
-                await _context.Database.BeginTransactionAsync();
-                var rarity = await _context.Set<Rarity>().FirstOrDefaultAsync(r => r.Id == id);
+            var strategy = _context.Database.CreateExecutionStrategy();
 
-                if (rarity == null)
+            await strategy.ExecuteAsync(async () =>
+            {
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
                 {
-                    throw new Exception($"Rarity with ID {id} not found");
+                    var rarity = await _context.Set<Rarity>().FirstOrDefaultAsync(r => r.Id == id);
 
+                    if (rarity == null)
+                    {
+                        throw new Exception($"Rarity with ID {id} not found");
+                    }
+
+                    rarity.IsActive = false;
+                    await _context.SaveChangesAsync();
+
+                    await transaction.CommitAsync();
                 }
-
-                rarity.IsActive = false;
-                await _context.SaveChangesAsync();
-
-                await _context.Database.CommitTransactionAsync();
-
-            }
-            catch (Exception ex)
-            {
-                await _context.Database.RollbackTransactionAsync();
-                throw new Exception($"Error deleting rarity: {ex.Message}");
-            }
-
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    throw new Exception($"Error deleting rarity: {ex.Message}");
+                }
+            });
         }
     }
 }

@@ -21,20 +21,25 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
 
         public async Task<int> AddAsync(Image image)
         {
-            try
-            {
-                await _context.Database.BeginTransactionAsync();
-                await _context.Set<Image>().AddAsync(image);
-                await _context.SaveChangesAsync();
-                await _context.Database.CommitTransactionAsync();
+            var strategy = _context.Database.CreateExecutionStrategy();
 
-                return image.Id;
-            }
-            catch (Exception ex)
+            return await strategy.ExecuteAsync(async () =>
             {
-                await _context.Database.RollbackTransactionAsync();
-                throw new Exception($"Error adding image: {ex.Message}");
-            }
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
+                {
+                    await _context.Set<Image>().AddAsync(image);
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    return image.Id;
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    throw new Exception($"Error adding image: {ex.Message}");
+                }
+            });
         }
 
         public async Task<Image> FindByIdAsync(int id)
@@ -65,55 +70,64 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
 
         public async Task UpdateAsync(Image image)
         {
-            try
+            var strategy = _context.Database.CreateExecutionStrategy();
+
+            await strategy.ExecuteAsync(async () =>
             {
-                await _context.Database.BeginTransactionAsync();
-
-                var existingImage = await _context.Set<Image>()
-                    .FirstOrDefaultAsync(i => i.Id == image.Id);
-
-                if (existingImage == null)
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
                 {
-                    throw new Exception($"Image with ID {image.Id} not found.");
+                    var existingImage = await _context.Set<Image>()
+                        .FirstOrDefaultAsync(i => i.Id == image.Id);
+
+                    if (existingImage == null)
+                    {
+                        throw new Exception($"Image with ID {image.Id} not found.");
+                    }
+
+                    existingImage.CardId = image.CardId;
+                    existingImage.ImageData = image.ImageData;
+                    existingImage.IsActive = image.IsActive;
+
+                    await _context.SaveChangesAsync();
+
+                    await transaction.CommitAsync();
                 }
-
-                existingImage.CardId = image.CardId;
-                existingImage.ImageData = image.ImageData;
-                existingImage.IsActive = image.IsActive;
-
-                await _context.SaveChangesAsync();
-
-                await _context.Database.CommitTransactionAsync();
-            }
-            catch (Exception ex)
-            {
-                await _context.Database.RollbackTransactionAsync();
-                throw new Exception($"Error updating image: {ex.Message}");
-            }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    throw new Exception($"Error updating image: {ex.Message}");
+                }
+            });
         }
 
         public async Task DeleteAsync(int id)
         {
-            try
-            {
-                await _context.Database.BeginTransactionAsync();
-                var image = await _context.Set<Image>().FirstOrDefaultAsync(i => i.Id == id);
+            var strategy = _context.Database.CreateExecutionStrategy();
 
-                if (image == null)
+            await strategy.ExecuteAsync(async () =>
+            {
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
                 {
-                    throw new Exception($"Image with ID {id} not found.");
+                    var image = await _context.Set<Image>().FirstOrDefaultAsync(i => i.Id == id);
+
+                    if (image == null)
+                    {
+                        throw new Exception($"Image with ID {id} not found.");
+                    }
+
+                    image.IsActive = false;
+                    await _context.SaveChangesAsync();
+
+                    await transaction.CommitAsync();
                 }
-
-                image.IsActive = false;
-                await _context.SaveChangesAsync();
-
-                await _context.Database.CommitTransactionAsync();
-            }
-            catch (Exception ex)
-            {
-                await _context.Database.RollbackTransactionAsync();
-                throw new Exception($"Error deleting image: {ex.Message}");
-            }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    throw new Exception($"Error deleting image: {ex.Message}");
+                }
+            });
         }
     }
 }

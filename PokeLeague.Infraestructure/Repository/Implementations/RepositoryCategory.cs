@@ -21,20 +21,25 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
 
         public async Task<int> AddAsync(Category category)
         {
-            try
-            {
-                await _context.Database.BeginTransactionAsync();
-                await _context.Set<Category>().AddAsync(category);
-                await _context.SaveChangesAsync();
-                await _context.Database.CommitTransactionAsync();
+            var strategy = _context.Database.CreateExecutionStrategy();
 
-                return category.Id;
-            }
-            catch (Exception ex)
+            return await strategy.ExecuteAsync(async () =>
             {
-                await _context.Database.RollbackTransactionAsync();
-                throw new Exception($"Error adding category: {ex.Message}");
-            }
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
+                {
+                    await _context.Set<Category>().AddAsync(category);
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    return category.Id;
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    throw new Exception($"Error adding category: {ex.Message}");
+                }
+            });
         }
 
         public async Task<Category> FindByIdAsync(int id)
@@ -59,54 +64,63 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
 
         public async Task UpdateAsync(Category category)
         {
-            try
+            var strategy = _context.Database.CreateExecutionStrategy();
+
+            await strategy.ExecuteAsync(async () =>
             {
-                await _context.Database.BeginTransactionAsync();
-
-                var existingCategory = await _context.Set<Category>()
-                    .FirstOrDefaultAsync(c => c.Id == category.Id);
-
-                if (existingCategory == null)
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
                 {
-                    throw new Exception($"Category with ID {category.Id} not found.");
+                    var existingCategory = await _context.Set<Category>()
+                        .FirstOrDefaultAsync(c => c.Id == category.Id);
+
+                    if (existingCategory == null)
+                    {
+                        throw new Exception($"Category with ID {category.Id} not found.");
+                    }
+
+                    existingCategory.Name = category.Name;
+                    existingCategory.IsActive = category.IsActive;
+
+                    await _context.SaveChangesAsync();
+
+                    await transaction.CommitAsync();
                 }
-
-                existingCategory.Name = category.Name;
-                existingCategory.IsActive = category.IsActive;
-
-                await _context.SaveChangesAsync();
-
-                await _context.Database.CommitTransactionAsync();
-            }
-            catch (Exception ex)
-            {
-                await _context.Database.RollbackTransactionAsync();
-                throw new Exception($"Error updating category: {ex.Message}");
-            }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    throw new Exception($"Error updating category: {ex.Message}");
+                }
+            });
         }
 
         public async Task DeleteAsync(int id)
         {
-            try
-            {
-                await _context.Database.BeginTransactionAsync();
-                var category = await _context.Set<Category>().FirstOrDefaultAsync(c => c.Id == id);
+            var strategy = _context.Database.CreateExecutionStrategy();
 
-                if (category == null)
+            await strategy.ExecuteAsync(async () =>
+            {
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
                 {
-                    throw new Exception($"Category with ID {id} not found.");
+                    var category = await _context.Set<Category>().FirstOrDefaultAsync(c => c.Id == id);
+
+                    if (category == null)
+                    {
+                        throw new Exception($"Category with ID {id} not found.");
+                    }
+
+                    category.IsActive = false;
+                    await _context.SaveChangesAsync();
+
+                    await transaction.CommitAsync();
                 }
-
-                category.IsActive = false;
-                await _context.SaveChangesAsync();
-
-                await _context.Database.CommitTransactionAsync();
-            }
-            catch (Exception ex)
-            {
-                await _context.Database.RollbackTransactionAsync();
-                throw new Exception($"Error deleting category: {ex.Message}");
-            }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    throw new Exception($"Error deleting category: {ex.Message}");
+                }
+            });
         }
     }
 }

@@ -10,6 +10,7 @@ namespace PokeLeague.Application.Services.Interfaces
     public interface IServiceUser
     {
         Task<ICollection<UserDTO>> ListAsync();
+        Task<ICollection<UserDTO>> ListByRoleAsync(RoleDTO roleDto);
         Task<UserDTO> FindByIdAsync(int id);
         Task<int> AddAsync(UserDTO userDto);
         Task UpdateAsync(UserDTO userDto);

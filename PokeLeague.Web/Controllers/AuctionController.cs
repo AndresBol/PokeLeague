@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc.Rendering;
 using PokeLeague.Application.DTOs;
 using PokeLeague.Application.Services.Interfaces;
+using PokeLeague.Web.Util;
 
 namespace PokeLeague.Web.Controllers
 {
@@ -30,6 +31,41 @@ namespace PokeLeague.Web.Controllers
             await LoadCombosAsync();
             return View();
         }
+        public async Task<IActionResult> Edit(int? id)
+        {
+            if (id == null)
+            {
+                TempData["Notification"] = SweetAlertHelper.CreateNotification(
+                    "Auction not found",
+                    "No auction ID was provided.",
+                    SweetAlertMessageType.error
+                );
+                return RedirectToAction(nameof(Index));
+            }
+
+            var auction = await _serviceAuction.FindByIdAsync(id.Value);
+            if (auction == null)
+            {
+                TempData["Notification"] = SweetAlertHelper.CreateNotification(
+                    "Auction not found",
+                    $"No auction found with ID {id.Value}.",
+                    SweetAlertMessageType.error
+                );
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (auction.Status != "Scheduled" || auction.AuctionBid.Count > 0)
+            {
+                TempData["Notification"] = SweetAlertHelper.CreateNotification(
+                    "Edit not allowed",
+                    "This auction cannot be edited because it has already started or has bids.",
+                    SweetAlertMessageType.warning
+                );
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            return View(auction);
+        }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -48,12 +84,22 @@ namespace PokeLeague.Web.Controllers
 
             if (!ModelState.IsValid)
             {
+                ViewBag.Notification = SweetAlertHelper.CreateNotification(
+                    "Validation errors",
+                    "Please correct the errors in the form.",
+                    SweetAlertMessageType.warning
+                );
                 await LoadCombosAsync();
                 return View(auctionDto);
             }
 
             auctionDto.IsActive = true;
             await _serviceAuction.AddAsync(auctionDto);
+            TempData["Notification"] = SweetAlertHelper.CreateNotification(
+                "Auction created",
+                "The auction was published successfully.",
+                SweetAlertMessageType.success
+            );
             return RedirectToAction(nameof(Index));
         }
 
@@ -61,10 +107,24 @@ namespace PokeLeague.Web.Controllers
         {
             if (id == null)
             {
-                return NotFound();
+                TempData["Notification"] = SweetAlertHelper.CreateNotification(
+                    "Auction not found",
+                    "No auction ID was provided.",
+                    SweetAlertMessageType.error
+                );
+                return RedirectToAction(nameof(Index));
             }
 
             var auction = await _serviceAuction.FindByIdAsync(id.Value);
+            if (auction == null)
+            {
+                TempData["Notification"] = SweetAlertHelper.CreateNotification(
+                    "Auction not found",
+                    $"No auction found with ID {id.Value}.",
+                    SweetAlertMessageType.error
+                );
+                return RedirectToAction(nameof(Index));
+            }
             return View(auction);
         }
 
@@ -109,6 +169,100 @@ namespace PokeLeague.Web.Controllers
         {
             var activeAuction = await _serviceAuction.FindActiveByCardIdAsync(cardId);
             return Json(new { hasActive = activeAuction != null });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int id, AuctionDTO auctionDto)
+        {
+            if (id != auctionDto.Id)
+            {
+                return NotFound();
+            }
+
+            var existing = await _serviceAuction.FindByIdAsync(id);
+            if (existing == null)
+            {
+                TempData["Notification"] = SweetAlertHelper.CreateNotification(
+                    "Auction not found",
+                    $"No auction found with ID {id}.",
+                    SweetAlertMessageType.error
+                );
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (existing.Status != "Scheduled" || existing.AuctionBid.Count > 0)
+            {
+                TempData["Notification"] = SweetAlertHelper.CreateNotification(
+                    "Edit not allowed",
+                    "This auction cannot be edited because it has already started or has bids.",
+                    SweetAlertMessageType.warning
+                );
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            if (auctionDto.EndDate <= auctionDto.StartDate)
+            {
+                ModelState.AddModelError("EndDate", "End date must be after start date.");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                ViewBag.Notification = SweetAlertHelper.CreateNotification(
+                    "Validation errors",
+                    "Please correct the errors in the form.",
+                    SweetAlertMessageType.warning
+                );
+                return View(auctionDto);
+            }
+
+            auctionDto.UserId = existing.UserId;
+            auctionDto.CardId = existing.CardId;
+            auctionDto.IsActive = existing.IsActive;
+            auctionDto.IsCanceled = existing.IsCanceled;
+
+            await _serviceAuction.UpdateAsync(auctionDto);
+            TempData["Notification"] = SweetAlertHelper.CreateNotification(
+                "Auction updated",
+                "The auction was updated successfully.",
+                SweetAlertMessageType.success
+            );
+            return RedirectToAction(nameof(Details), new { id = auctionDto.Id });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Cancel(int id)
+        {
+            var auction = await _serviceAuction.FindByIdAsync(id);
+            if (auction == null)
+            {
+                TempData["Notification"] = SweetAlertHelper.CreateNotification(
+                    "Auction not found",
+                    $"No auction found with ID {id}.",
+                    SweetAlertMessageType.error
+                );
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (auction.Status != "Scheduled" || auction.AuctionBid.Count > 0)
+            {
+                TempData["Notification"] = SweetAlertHelper.CreateNotification(
+                    "Cancel not allowed",
+                    "This auction cannot be canceled because it has already started or has bids.",
+                    SweetAlertMessageType.warning
+                );
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            auction.IsCanceled = true;
+            await _serviceAuction.UpdateAsync(auction);
+            TempData["Notification"] = SweetAlertHelper.CreateNotification(
+                "Auction canceled",
+                "The auction was canceled successfully.",
+                SweetAlertMessageType.success
+            );
+            return RedirectToAction(nameof(Details), new { id });
         }
     }
 }

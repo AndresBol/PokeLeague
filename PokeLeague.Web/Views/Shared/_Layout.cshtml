@@ -17,6 +17,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/PokeLeague.Web.styles.css" asp-append-version="true" />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
     <header>
@@ -59,5 +60,20 @@
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
+
+    @if (TempData["Notification"] != null)
+    {
+        <script>
+            var config = @Html.Raw(TempData["Notification"]);
+            Swal.fire(config);
+        </script>
+    }
+    @if (ViewBag.Notification != null)
+    {
+        <script>
+            var config = @Html.Raw(ViewBag.Notification);
+            Swal.fire(config);
+        </script>
+    }
 </body>
 </html>

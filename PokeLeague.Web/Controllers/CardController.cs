@@ -63,7 +63,7 @@ namespace PokeLeague.Web.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            if(card.AuctionStatus != "Scheduled" || card.AuctionStatus != "In Progress") 
+            if(card.AuctionStatus != "Scheduled") 
             {
                 TempData["Notification"] = SweetAlertHelper.CreateNotification(
                        "Edit not allowed",
@@ -158,7 +158,7 @@ namespace PokeLeague.Web.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            if(existing.AuctionStatus != "Scheduled" || existing.AuctionStatus != "In progress") 
+            if(existing.AuctionStatus != "Scheduled") 
             {
                 TempData["Notification"] = SweetAlertHelper.CreateNotification(
                         "Edit not allowed",
@@ -230,6 +230,95 @@ namespace PokeLeague.Web.Controllers
             }
 
             return View(card);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Delete(int id) 
+        {
+            var card = await _serviceCard.FindByIdAsync(id);
+
+            if(card == null) 
+            {
+                TempData["Notification"] = SweetAlertHelper.CreateNotification(
+                    "Card not found",
+                    $"No card found with the ID {id}.",
+                    SweetAlertMessageType.error
+
+                    );
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (card.AuctionStatus == "In Progress")
+            {
+                TempData["Notification"] = SweetAlertHelper.CreateNotification(
+                    "Delete not allowed",
+                    "This card is in an active auction.",
+                    SweetAlertMessageType.warning
+                    
+                    );
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            if (card.Auction != null && card.Auction.Any()) 
+            {
+                TempData["Notification"] = SweetAlertHelper.CreateNotification(
+                 "Delete not allowed",
+                 "This card has already been acutioned.",
+                 SweetAlertMessageType.warning
+
+                 );
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            await _serviceCard.DeleteAsync(id);
+
+            TempData["Notification"] = SweetAlertHelper.CreateNotification(
+                "Card deleted",
+                "This card was removed successfully.",
+                SweetAlertMessageType.warning
+                );
+
+            return RedirectToAction(nameof(Index));
+        }
+
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ToggleActive(int id) 
+        {
+            var card = await _serviceCard.FindByIdAsync(id);
+
+            if(card == null) 
+            {
+                TempData["Notification"] = SweetAlertHelper.CreateNotification(
+                    "Card not found",
+                    $"No card found with ID {id}.",
+                    SweetAlertMessageType.error
+                    );
+                return RedirectToAction(nameof(Index));
+            }
+
+            if(card.AuctionStatus == "In Progress") 
+            {
+                TempData["Notication"] = SweetAlertHelper.CreateNotification(
+                    "Action not allowed",
+                    "This card cannot be modified because it is in an active auction.",
+                    SweetAlertMessageType.warning
+                    );
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            await _serviceCard.ToggleActiveAsync(id);
+
+            TempData["Notification"] = SweetAlertHelper.CreateNotification(
+                "Status updated",
+                "The card status was updated successfully.",
+                SweetAlertMessageType.success
+
+                );
+
+            return RedirectToAction(nameof(Details), new { id });
         }
     }
 }

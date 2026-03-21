@@ -68,5 +68,19 @@ namespace PokeLeague.Application.Services.Implementations
         {
             await _repository.DeleteAsync(id);
         }
+
+        public async Task ToggleActiveAsync(int id) 
+        {
+            var card = await _repository.FindByIdAsync(id);
+
+            if(card == null)
+            
+                throw new Exception("Card not found");
+
+                card.IsActive = !card.IsActive;
+
+            await _repository.UpdateAsync(card);
+            
+        }
     }
 }

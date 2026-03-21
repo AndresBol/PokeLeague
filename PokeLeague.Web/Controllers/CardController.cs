@@ -11,13 +11,22 @@ namespace PokeLeague.Web.Controllers
         private readonly IServiceCard _serviceCard;
         private readonly IServiceCategory _serviceCategory;
         private readonly IServiceUser _serviceUser;
+        private readonly IServiceLanguage _serviceLanguage;
+        private readonly IServiceRarity _serviceRarity;
+        private readonly IServiceSet _serviceSet;
+        private readonly IServiceImage _serviceImage;
+        private readonly IServiceCategoryCard _serviceCategoryCard;
 
-
-        public CardController(IServiceCard serviceCard, IServiceCategory serviceCategory, IServiceUser serviceUser)
+        public CardController(IServiceCard serviceCard, IServiceCategory serviceCategory, IServiceUser serviceUser, IServiceLanguage serviceLanguage, IServiceRarity serviceRarity, IServiceSet serviceSet, IServiceImage serviceImage, IServiceCategoryCard serviceCategoryCard)
         {
             _serviceCard = serviceCard;
             _serviceCategory = serviceCategory;
             _serviceUser = serviceUser;
+            _serviceLanguage = serviceLanguage;
+            _serviceRarity = serviceRarity;
+            _serviceSet = serviceSet;
+            _serviceImage = serviceImage;
+            this._serviceCategoryCard = serviceCategoryCard;
         }
 
         public async Task<IActionResult> Index()
@@ -33,10 +42,18 @@ namespace PokeLeague.Web.Controllers
         }
         private async Task LoadCombosAsync() 
         {
-            ViewBag.Categories = await _serviceCategory.ListAsync();
+            var cats = await _serviceCategory.ListAsync();
+
+            ViewBag.Categories = cats;
 
             var users = await _serviceUser.ListAsync();
             ViewBag.User = users.FirstOrDefault();
+
+            ViewBag.Languages = await _serviceLanguage.ListAsync();
+
+            ViewBag.Rarity = await _serviceRarity.ListAsync();
+
+            ViewBag.Set= await _serviceSet.ListAsync();
         }
 
         public async Task<IActionResult> Edit(int ? id) 
@@ -82,58 +99,105 @@ namespace PokeLeague.Web.Controllers
         }
 
 
+
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(CardDTO cardDTO)
+        public async Task<IActionResult> Create(CardDTO cardDTO, List<IFormFile> files, List<int> SelectedCategories)
         {
-            if (string.IsNullOrWhiteSpace(cardDTO.Name)) 
-            {
-                ModelState.AddModelError("Name", "Name is required");
-            }
+          
+                if (string.IsNullOrWhiteSpace(cardDTO.Name))
+                {
+                    ModelState.AddModelError("Name", "Name is required");
+                }
 
-            if(cardDTO.Description ==null || cardDTO.Description.Length < 20) 
-            {
-                ModelState.AddModelError("Description", "Description must be at least 20 characters.");
-            }
+                if (cardDTO.Description == null || cardDTO.Description.Length < 20)
+                {
+                    ModelState.AddModelError("Description", "Description must be at least 20 characters.");
+                }
 
-            if(cardDTO.CategoryCard == null || !cardDTO.CategoryCard.Any()) 
-            {
-                ModelState.AddModelError("", "At least one category is required.");
-            }
+                if (SelectedCategories == null ||!SelectedCategories.Any())
+                {
+                    ModelState.AddModelError("", "At least one category is required.");
+                }
 
-            if(cardDTO.Image == null || !cardDTO.Image.Any())
-            {
-                ModelState.AddModelError("", "At least one image is required.");
-            }
+                if (files == null || !files.Any())
+                {
+                    ModelState.AddModelError("", "At least one image is required.");
+                }
 
-            if (!ModelState.IsValid) 
-            {
-                ViewBag.Notification = SweetAlertHelper.CreateNotification(
-                        "Validation errors",
-                        "Please complete all required fields",
-                        SweetAlertMessageType.warning
+                if (!ModelState.IsValid)
+                {
+                    ViewBag.Notification = SweetAlertHelper.CreateNotification(
+                            "Validation errors",
+                            "Please complete all required fields",
+                            SweetAlertMessageType.warning
+                        );
+
+                    ViewBag.SelectedCategories = SelectedCategories;
+
+                    await LoadCombosAsync();
+                    return View(cardDTO);
+                }
+
+                cardDTO.IsActive = true;
+                cardDTO.RegistrationDate = DateOnly.FromDateTime(DateTime.Now);
+               
+                var users = await _serviceUser.ListAsync();
+                var currentUser = users.FirstOrDefault();
+
+                if (currentUser == null)
+                {
+                    throw new Exception("No users found in database");
+                }
+
+                cardDTO.UserId = currentUser.Id;
+
+                var cardId = await _serviceCard.AddAsync(cardDTO);
+
+                if (SelectedCategories != null && SelectedCategories.Any())
+                {
+                    foreach (var catId in SelectedCategories)
+                    {
+                        await _serviceCategoryCard.AddAsync(new CategoryCardDTO
+                        {
+                            CardId = cardId,
+                            CategoryId = catId,
+                            IsActive = true
+                        });
+                    }
+                }
+
+
+                if (files !=null && files.Any())
+                
+               {
+                    foreach (var file in files)
+                    {
+                        using var ms= new MemoryStream();
+                        await file.CopyToAsync(ms);
+
+                        var imageBytes =ms.ToArray();
+
+                        await _serviceImage.AddAsync(new ImageDTO
+
+                        {
+                            CardId =cardId,
+                            ImageData = imageBytes,
+                            IsActive = true
+                        });
+                    }
+
+                }
+
+                TempData["Notification"] = SweetAlertHelper.CreateNotification(
+                    "Card created",
+                    "The card was created successfully.",
+                    SweetAlertMessageType.success
+
                     );
-                await LoadCombosAsync();
-                return View(cardDTO);
-            }
 
-            cardDTO.IsActive = true;
-
-            var users = await _serviceUser.ListAsync();
-            var currentUser = users.FirstOrDefault();
-            cardDTO.UserId = currentUser.Id;
-
-            await _serviceCard.AddAsync(cardDTO);
-
-            TempData["Notification"] = SweetAlertHelper.CreateNotification(
-                "Card created",
-                "The card was created successfully.",
-                SweetAlertMessageType.success
-
-                );
-
-            return RedirectToAction(nameof(Index)); 
-        }
+                return RedirectToAction(nameof(Index));
+         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -321,4 +385,6 @@ namespace PokeLeague.Web.Controllers
             return RedirectToAction(nameof(Details), new { id });
         }
     }
+
+
 }

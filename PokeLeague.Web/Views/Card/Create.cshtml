@@ -1,0 +1,195 @@
+﻿@model PokeLeague.Application.DTOs.CardDTO
+
+@{
+    ViewData["Title"] = "Create Card";
+    var user = ViewBag.User;
+}
+
+<div class="container mt-4">
+
+    <h2>Create Card</h2>
+
+    <hr />
+
+    <form asp-controller="Card" asp-action="Create" method="post" enctype="multipart/form-data">
+
+        @Html.AntiForgeryToken()
+
+        <div class="row">
+
+            <div class="mb-3 col-md-6">
+                <label  asp-for="Name" class="form-label"></label>  
+                <input asp-for="Name" class="form-control"/>
+                <span asp-validation-for="Name" class="text-danger"></span>
+
+            </div>
+
+            <div class="mb-3 col-12">
+                <label asp-for="Description"></label>
+                <textarea asp-for="Description" class="form-control"></textarea>
+                <span asp-validation-for="Description" class="text-danger"></span>
+
+            </div>
+
+            <div class="mb-3 col-md-6">
+                <label class="form-label"> Condition</label>
+                <select asp-for="IsNew" class="form-select">
+                    <option value="true">New</option>
+                    <option value="false">Used</option>
+                </select>
+            </div>
+
+
+            <div class="mb-3 col-md-6">
+                <label asp-for="Language" class="form-label"></label>
+                <select asp-for="LanguageCode" class="form-select">
+                    <option value ="">--Select Language--</option>
+                    @foreach (var lang in ViewBag.Languages)
+                    {
+                        <option value="@lang.LanguageCode">@lang.LanguageName</option>
+                    }
+                </select>
+                <span asp-validation-for="LanguageCode" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3 col-md-6">
+                <label asp-for="Rarity" class="form-label"></label>
+                <select asp-for="RarityId" class="form-select">
+                    <option value="">--Select Rarity--</option>
+                    @foreach (var rar in ViewBag.Rarity)
+                    {
+                        <option value ="@rar.Id">@rar.Name </option>
+                    }
+                </select>
+                <span asp-validation-for="RarityId" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3 col-md-6">
+                <label class="form-label">Set</label>
+                <select asp-for="SetId" class="form-select">
+                    <option value="">--Select Set--</option>
+                    @foreach (var set in ViewBag.Set)
+                    {
+                        <option value="@set.Id">@set.Name </option>
+                    }
+                </select>
+                <span asp-validation-for="SetId" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3 col-md-6">
+                <label asp-for="Grade" class="form-label"></label>
+                <input asp-for="Grade" class="form-control" type ="number" min="1" max="10" />
+                <span asp-validation-for="Grade" class="text-danger"></span>
+            </div>
+
+
+            <div class="mb-3 col-md-6">
+                <label class="form-label">Seller</label>
+                <input class="form-control" value="@user?.Username" readonly/>
+            </div>
+
+            <div class="mb-3 col-md-6">
+                <label class="form-label">Status: </label>
+                <span class="badge bg-success">Active</span>
+            </div>
+
+            <div class="mb-3 col-12">
+                <label class="form-label">Categories</label>
+
+                <div class="d-flex flex-wrap gap-3">
+                    @{
+                        var categories = ViewBag.Categories as IEnumerable<dynamic>;
+                        var selected = ViewBag.SelectedCategories as List<int>;
+                    }
+
+                    @if (categories != null)
+                    {
+                        foreach (var cat in categories)
+                        {
+                            var isChecked = selected != null && selected.Contains((int)cat.Id);
+
+                            <div class="form-check">
+                                <input type="checkbox"
+                                       name="SelectedCategories"
+                                       value="@cat.Id"
+                                       class="form-check-input"
+                                @(isChecked ? "checked" : "") />
+
+                                <label class="form-check-label">
+                                    @cat.Name
+                                </label>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-danger">No categories available</p>
+                    }
+                </div>
+            </div>
+
+
+           
+            <div class="mb-3">
+                <label class="form-label">Images</label>
+                <div id="imageContainer">
+                    <input type="file" id="fileInput" name="files" multiple hidden/>
+                    <button type="button" class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                        Select Image
+                    </button>
+                    <span id="fileNames" class="ms-2 text-muted"></span>
+
+                    <div id="previewContainer" class="d-flex flex-wrap gap-3 mt-3"></div>
+                </div>
+            
+            </div>
+
+    
+        </div>
+        <button type="submit" class="btn btn-success">Create</button>
+        <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+
+    </form>
+
+</div>
+
+@section Scripts
+{
+    <script>
+        document.getElementById("fileInput").addEventListener("change", function(){
+        const preview = document.getElementById("previewContainer");
+        const fileNames = document.getElementById("fileNames");
+
+        preview.innerHTML= "";
+
+        const files = Array.from(this.files);
+
+        fileNames.textContent = files.map(f => f.name).join(", ");
+
+        files.forEach(file =>{
+            if(!file.type.startsWith("image/")) return;
+
+            const reader = new FileReader();
+
+            reader.onload = function (e)
+            {
+                const img =document.createElement("img");
+                img.src = e.target.result;
+
+                img.style.width ="120px";
+                img.style.height="120px";
+                img.style.objectFit= "cover";
+                img.className = "rounded shadow";
+
+                preview.appendChild(img);
+            };
+
+            reader.readAsDataURL(file);
+        });
+
+        
+        });
+
+    </script>
+}
+

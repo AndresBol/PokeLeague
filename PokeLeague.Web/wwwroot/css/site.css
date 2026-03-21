@@ -67,3 +67,15 @@ body {
     flex-grow: 0;
     flex-shrink: 0;
 }
+
+#previewContainer img
+{
+    border-radius:10px;
+    transition:transform 0.2s;
+
+}
+
+#previewContainer img:hover 
+{
+    transform: scale(1.1);
+}

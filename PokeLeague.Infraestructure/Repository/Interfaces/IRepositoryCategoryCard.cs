@@ -14,5 +14,6 @@ namespace PokeLeague.Infraestructure.Repository.Interfaces
         Task<int> AddAsync(CategoryCard categoryCard);
         Task UpdateAsync(CategoryCard categoryCard);
         Task DeleteAsync(int id);
+        Task DeleteByCardIdAsync(int cardId);
     }
 }

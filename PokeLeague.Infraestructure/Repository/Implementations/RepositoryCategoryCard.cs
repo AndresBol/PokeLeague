@@ -131,5 +131,14 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
                 }
             });
         }
+
+        public async Task DeleteByCardIdAsync(int cardId)
+        {
+            var items = _context.CategoryCard
+                .Where(x => x.CardId == cardId);
+
+            _context.CategoryCard.RemoveRange(items);
+            await _context.SaveChangesAsync();
+        }
     }
 }

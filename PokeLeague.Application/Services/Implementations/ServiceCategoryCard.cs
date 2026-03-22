@@ -57,5 +57,10 @@ namespace PokeLeague.Application.Services.Implementations
         {
             await _repository.DeleteAsync(id);
         }
+
+        public async Task DeleteByCardIdAsync(int cardId) 
+        {
+            await _repository.DeleteByCardIdAsync(cardId);
+        }
     }
 }

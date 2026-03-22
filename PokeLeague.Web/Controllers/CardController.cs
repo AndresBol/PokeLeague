@@ -80,7 +80,7 @@ namespace PokeLeague.Web.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            if(card.AuctionStatus != "Scheduled") 
+            if(card.AuctionStatus == "In Progress") 
             {
                 TempData["Notification"] = SweetAlertHelper.CreateNotification(
                        "Edit not allowed",
@@ -92,6 +92,12 @@ namespace PokeLeague.Web.Controllers
             }
 
             await LoadCombosAsync();
+
+            ViewBag.SelectedCategories = card.CategoryCard?
+                .Where(c => c.IsActive)
+                .Select(c => c.CategoryId)
+                .ToList();
+              
 
             return View(card);
 
@@ -201,7 +207,7 @@ namespace PokeLeague.Web.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit (int id, CardDTO cardDTO)
+        public async Task<IActionResult> Edit (int id, CardDTO cardDTO,List<IFormFile> files, List<int> SelectedCategories)
         {
             if(id != cardDTO.Id)
             {
@@ -222,7 +228,7 @@ namespace PokeLeague.Web.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            if(existing.AuctionStatus != "Scheduled") 
+            if(existing.AuctionStatus == "In Progress") 
             {
                 TempData["Notification"] = SweetAlertHelper.CreateNotification(
                         "Edit not allowed",
@@ -234,7 +240,7 @@ namespace PokeLeague.Web.Controllers
 
             if (string.IsNullOrWhiteSpace(cardDTO.Name))
             {
-                ModelState.AddModelError("Name", "Namse is required.");
+                ModelState.AddModelError("Name", "Name is required.");
             }
 
             if (cardDTO.Description == null || cardDTO.Description.Length < 20) 
@@ -242,14 +248,9 @@ namespace PokeLeague.Web.Controllers
                 ModelState.AddModelError("Description", "Description must be at least 20 charaters.");
             }
 
-            if (cardDTO.CategoryCard == null || !cardDTO.CategoryCard.Any()) 
+            if (SelectedCategories == null || !SelectedCategories.Any()) 
             {
                 ModelState.AddModelError("", "At least one category is required.");
-            }
-
-            if(cardDTO.Image == null || !cardDTO.Image.Any()) 
-            {
-                ModelState.AddModelError("", "At least one image is required.");
             }
 
             if (!ModelState.IsValid) 
@@ -259,6 +260,8 @@ namespace PokeLeague.Web.Controllers
                     "Please correct the errors in the form.",
                     SweetAlertMessageType.warning
                     );
+
+                ViewBag.SelectedCategories = SelectedCategories;
 
                 await LoadCombosAsync();
                 return View(cardDTO);
@@ -270,6 +273,38 @@ namespace PokeLeague.Web.Controllers
             cardDTO.RegistrationDate = existing.RegistrationDate;
 
             await _serviceCard.UpdateAsync(cardDTO);
+
+            await _serviceCategoryCard.DeleteByCardIdAsync(id);
+
+            if (SelectedCategories != null && SelectedCategories.Any())
+            {
+                foreach (var catId in SelectedCategories)
+                {
+                    await _serviceCategoryCard.AddAsync(new CategoryCardDTO
+                    {
+                        CardId = id,
+                        CategoryId = catId,
+                        IsActive = true,
+
+                    });
+                }
+            }
+
+            if (files != null && files.Any())
+            {
+                foreach (var file in files)
+                {
+                    using var ms = new MemoryStream();
+                    await file.CopyToAsync(ms);
+
+                    await _serviceImage.AddAsync(new ImageDTO
+                    {
+                        CardId = id,
+                        ImageData = ms.ToArray(),
+                        IsActive = true
+                    });
+                }
+            }
 
             TempData["Notification"] = SweetAlertHelper.CreateNotification(
                    "Card update",
@@ -335,11 +370,12 @@ namespace PokeLeague.Web.Controllers
                 return RedirectToAction(nameof(Details), new { id });
             }
 
-            await _serviceCard.DeleteAsync(id);
+            card.IsActive = false;
+            await _serviceCard.UpdateAsync(card);
 
             TempData["Notification"] = SweetAlertHelper.CreateNotification(
                 "Card deleted",
-                "This card was removed successfully.",
+                "This card was desactived sucessfully.",
                 SweetAlertMessageType.warning
                 );
 
@@ -365,7 +401,7 @@ namespace PokeLeague.Web.Controllers
 
             if(card.AuctionStatus == "In Progress") 
             {
-                TempData["Notication"] = SweetAlertHelper.CreateNotification(
+                TempData["Notification"] = SweetAlertHelper.CreateNotification(
                     "Action not allowed",
                     "This card cannot be modified because it is in an active auction.",
                     SweetAlertMessageType.warning

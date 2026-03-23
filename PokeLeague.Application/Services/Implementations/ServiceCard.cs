@@ -35,6 +35,10 @@ namespace PokeLeague.Application.Services.Implementations
         public async Task<CardDTO> FindByIdAsync(int id)
         {
             var card = await _repository.FindByIdAsync(id);
+
+            if (card == null)
+                throw new Exception("Card not found");
+
             var cardDTO = _mapper.Map<CardDTO>(card);
 
             var activeAuction = await _serviceAuction.FindActiveByCardIdAsync(id);

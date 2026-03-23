@@ -68,12 +68,15 @@ namespace PokeLeague.Web.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            var card = await _serviceCard.FindByIdAsync(id.Value);
-
-            if (card == null) 
+            CardDTO card;
+            try
+            {
+                card = await _serviceCard.FindByIdAsync(id.Value);
+            }
+            catch (Exception)
             {
                 TempData["Notification"] = SweetAlertHelper.CreateNotification(
-                    "Card no found",
+                    "Card not found",
                     $"No card found with the ID {id.Value}.",
                     SweetAlertMessageType.error
                     );
@@ -214,17 +217,18 @@ namespace PokeLeague.Web.Controllers
                 return NotFound();
             }
 
-            var existing = await _serviceCard.FindByIdAsync(id);
-
-            if (existing == null)
+            CardDTO existing;
+            try
+            {
+                existing = await _serviceCard.FindByIdAsync(id);
+            }
+            catch (Exception)
             {
                 TempData["Notification"] = SweetAlertHelper.CreateNotification(
                         "Card not found",
                         $"No card found with ID {id}.",
                         SweetAlertMessageType.error
-
-           );
-
+                );
                 return RedirectToAction(nameof(Index));
             }
 
@@ -322,9 +326,13 @@ namespace PokeLeague.Web.Controllers
                 return NotFound();
             }
 
-            var card = await _serviceCard.FindByIdAsync(id.Value);
-
-            if(card == null) {
+            CardDTO card;
+            try
+            {
+                card = await _serviceCard.FindByIdAsync(id.Value);
+            }
+            catch (Exception)
+            {
                 return NotFound();
             }
 
@@ -335,15 +343,17 @@ namespace PokeLeague.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id) 
         {
-            var card = await _serviceCard.FindByIdAsync(id);
-
-            if(card == null) 
+            CardDTO card;
+            try
+            {
+                card = await _serviceCard.FindByIdAsync(id);
+            }
+            catch (Exception)
             {
                 TempData["Notification"] = SweetAlertHelper.CreateNotification(
                     "Card not found",
                     $"No card found with the ID {id}.",
                     SweetAlertMessageType.error
-
                     );
                 return RedirectToAction(nameof(Index));
             }
@@ -387,9 +397,12 @@ namespace PokeLeague.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ToggleActive(int id) 
         {
-            var card = await _serviceCard.FindByIdAsync(id);
-
-            if(card == null) 
+            CardDTO card;
+            try
+            {
+                card = await _serviceCard.FindByIdAsync(id);
+            }
+            catch (Exception)
             {
                 TempData["Notification"] = SweetAlertHelper.CreateNotification(
                     "Card not found",
@@ -408,17 +421,28 @@ namespace PokeLeague.Web.Controllers
                     );
                 return RedirectToAction(nameof(Details), new { id });
             }
+            try
+            {
+                await _serviceCard.ToggleActiveAsync(id);
+            } catch (Exception ex) 
+            {
+                TempData["Notification"] = SweetAlertHelper.CreateNotification(
+                    "An error has occurred",
+                    ex.Message,
+                    SweetAlertMessageType.warning
+                    );
+                return RedirectToAction(nameof(Index));
+            }
 
-            await _serviceCard.ToggleActiveAsync(id);
 
-            TempData["Notification"] = SweetAlertHelper.CreateNotification(
+           TempData["Notification"] = SweetAlertHelper.CreateNotification(
                 "Status updated",
                 "The card status was updated successfully.",
                 SweetAlertMessageType.success
 
                 );
 
-            return RedirectToAction(nameof(Details), new { id });
+            return RedirectToAction(nameof(Index));
         }
     }
 

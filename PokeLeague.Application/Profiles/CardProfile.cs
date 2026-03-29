@@ -26,8 +26,6 @@ namespace PokeLeague.Application.Profiles
                 .ForMember(dest => dest.Set, opt => opt.Ignore())
                 .ForMember(dest => dest.Rarity, opt => opt.Ignore())
                 .ForMember(dest => dest.LanguageCodeNavigation, opt => opt.Ignore())
-                .ForMember(dest => dest.Image, opt => opt.Ignore())
-                .ForMember(dest => dest.CategoryCard, opt => opt.Ignore())
                 .ForMember(dest => dest.User, opt => opt.Ignore())
                 .ForMember(dest => dest.Auction, opt => opt.Ignore());
         }

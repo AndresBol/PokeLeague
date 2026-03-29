@@ -44,10 +44,16 @@ namespace PokeLeague.Application.Services.Implementations
             var activeAuction = await _serviceAuction.FindActiveByCardIdAsync(id);
             cardDTO.AuctionStatus = activeAuction?.Status ?? "Prepared";
             //TODO: Search if exists a better way
-            foreach (var auction in cardDTO.Auction)
+            if (cardDTO.Auction != null)
             {
-                var resolvedAuction = await _serviceAuction.FindByIdAsync(auction.Id);
-                auction.Status = resolvedAuction.Status;
+                foreach (var auction in cardDTO.Auction)
+                {
+                    var resolvedAuction = await _serviceAuction.FindByIdAsync(auction.Id);
+                    if (resolvedAuction != null)
+                    {
+                        auction.Status = resolvedAuction.Status;
+                    }
+                }
             }
 
             return cardDTO;

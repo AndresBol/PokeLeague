@@ -38,8 +38,6 @@ builder.Services.AddTransient<IServiceAuction, ServiceAuction>();
 builder.Services.AddTransient<IServiceAuctionBid, ServiceAuctionBid>();
 builder.Services.AddTransient<IServiceCard, ServiceCard>();
 builder.Services.AddTransient<IServiceCategory, ServiceCategory>();
-builder.Services.AddTransient<IServiceCategoryCard, ServiceCategoryCard>();
-builder.Services.AddTransient<IServiceImage, ServiceImage>();
 builder.Services.AddTransient<IServiceLanguage, ServiceLanguage>();
 builder.Services.AddTransient<IServicePurchaseOrder, ServicePurchaseOrder>();
 builder.Services.AddTransient<IServiceSet, ServiceSet>();

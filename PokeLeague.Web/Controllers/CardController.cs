@@ -1,8 +1,9 @@
-﻿using System.Reflection.Metadata.Ecma335;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using PokeLeague.Application.DTOs;
 using PokeLeague.Application.Services.Interfaces;
 using PokeLeague.Web.Util;
+using System.Collections.Generic;
+using System.Reflection.Metadata.Ecma335;
 
 namespace PokeLeague.Web.Controllers
 {
@@ -14,10 +15,8 @@ namespace PokeLeague.Web.Controllers
         private readonly IServiceLanguage _serviceLanguage;
         private readonly IServiceRarity _serviceRarity;
         private readonly IServiceSet _serviceSet;
-        private readonly IServiceImage _serviceImage;
-        private readonly IServiceCategoryCard _serviceCategoryCard;
 
-        public CardController(IServiceCard serviceCard, IServiceCategory serviceCategory, IServiceUser serviceUser, IServiceLanguage serviceLanguage, IServiceRarity serviceRarity, IServiceSet serviceSet, IServiceImage serviceImage, IServiceCategoryCard serviceCategoryCard)
+        public CardController(IServiceCard serviceCard, IServiceCategory serviceCategory, IServiceUser serviceUser, IServiceLanguage serviceLanguage, IServiceRarity serviceRarity, IServiceSet serviceSet)
         {
             _serviceCard = serviceCard;
             _serviceCategory = serviceCategory;
@@ -25,8 +24,6 @@ namespace PokeLeague.Web.Controllers
             _serviceLanguage = serviceLanguage;
             _serviceRarity = serviceRarity;
             _serviceSet = serviceSet;
-            _serviceImage = serviceImage;
-            this._serviceCategoryCard = serviceCategoryCard;
         }
 
         public async Task<IActionResult> Index()
@@ -107,214 +104,194 @@ namespace PokeLeague.Web.Controllers
 
         }
 
-
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(CardDTO cardDTO, List<IFormFile> files, List<int> SelectedCategories)
+        public void FormValidation(CardDTO cardDTO, List<IFormFile> files, List<int> selectedCategoryIds)
         {
-          
-                if (string.IsNullOrWhiteSpace(cardDTO.Name))
-                {
-                    ModelState.AddModelError("Name", "Name is required");
-                }
-
-                if (cardDTO.Description == null || cardDTO.Description.Length < 20)
-                {
-                    ModelState.AddModelError("Description", "Description must be at least 20 characters.");
-                }
-
-                if (SelectedCategories == null ||!SelectedCategories.Any())
-                {
-                    ModelState.AddModelError("", "At least one category is required.");
-                }
-
-                if (files == null || !files.Any())
-                {
-                    ModelState.AddModelError("", "At least one image is required.");
-                }
-
-                if (!ModelState.IsValid)
-                {
-                    ViewBag.Notification = SweetAlertHelper.CreateNotification(
-                            "Validation errors",
-                            "Please complete all required fields",
-                            SweetAlertMessageType.warning
-                        );
-
-                    ViewBag.SelectedCategories = SelectedCategories;
-
-                    await LoadCombosAsync();
-                    return View(cardDTO);
-                }
-
-                cardDTO.IsActive = true;
-                cardDTO.RegistrationDate = DateOnly.FromDateTime(DateTime.Now);
-               
-                var users = await _serviceUser.ListAsync();
-                var currentUser = users.FirstOrDefault();
-
-                if (currentUser == null)
-                {
-                    throw new Exception("No users found in database");
-                }
-
-                cardDTO.UserId = currentUser.Id;
-
-                var cardId = await _serviceCard.AddAsync(cardDTO);
-
-                if (SelectedCategories != null && SelectedCategories.Any())
-                {
-                    foreach (var catId in SelectedCategories)
-                    {
-                        await _serviceCategoryCard.AddAsync(new CategoryCardDTO
-                        {
-                            CardId = cardId,
-                            CategoryId = catId,
-                            IsActive = true
-                        });
-                    }
-                }
-
-
-                if (files !=null && files.Any())
-                
-               {
-                    foreach (var file in files)
-                    {
-                        using var ms= new MemoryStream();
-                        await file.CopyToAsync(ms);
-
-                        var imageBytes =ms.ToArray();
-
-                        await _serviceImage.AddAsync(new ImageDTO
-
-                        {
-                            CardId =cardId,
-                            ImageData = imageBytes,
-                            IsActive = true
-                        });
-                    }
-
-                }
-
-                TempData["Notification"] = SweetAlertHelper.CreateNotification(
-                    "Card created",
-                    "The card was created successfully.",
-                    SweetAlertMessageType.success
-
-                    );
-
-                return RedirectToAction(nameof(Index));
-         }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit (int id, CardDTO cardDTO,List<IFormFile> files, List<int> SelectedCategories)
-        {
-            if(id != cardDTO.Id)
-            {
-                return NotFound();
-            }
-
-            CardDTO existing;
-            try
-            {
-                existing = await _serviceCard.FindByIdAsync(id);
-            }
-            catch (Exception)
-            {
-                TempData["Notification"] = SweetAlertHelper.CreateNotification(
-                        "Card not found",
-                        $"No card found with ID {id}.",
-                        SweetAlertMessageType.error
-                );
-                return RedirectToAction(nameof(Index));
-            }
-
-            if(existing.AuctionStatus == "In Progress") 
-            {
-                TempData["Notification"] = SweetAlertHelper.CreateNotification(
-                        "Edit not allowed",
-                        "This card cannot be edited because it is in an active auction.",
-                        SweetAlertMessageType.warning
-                        );
-                return RedirectToAction(nameof(Details), new { id });
-            }
-
             if (string.IsNullOrWhiteSpace(cardDTO.Name))
             {
-                ModelState.AddModelError("Name", "Name is required.");
+                ModelState.AddModelError("Name", "Name is required");
             }
 
-            if (cardDTO.Description == null || cardDTO.Description.Length < 20) 
+            if (cardDTO.Description == null || cardDTO.Description.Length < 20)
             {
-                ModelState.AddModelError("Description", "Description must be at least 20 charaters.");
+                ModelState.AddModelError("Description", "Description must be at least 20 characters.");
             }
 
-            if (SelectedCategories == null || !SelectedCategories.Any()) 
+            if (selectedCategoryIds == null || selectedCategoryIds.Count == 0)
             {
                 ModelState.AddModelError("", "At least one category is required.");
             }
 
-            if (!ModelState.IsValid) 
+            if (files == null || files.Count == 0)
+            {
+                ModelState.AddModelError("", "At least one image is required.");
+            }
+        }
+
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create(CardDTO cardDTO, List<IFormFile> files, List<int> selectedCategoryIds)
+        {
+            FormValidation(cardDTO, files, selectedCategoryIds);
+            if (!ModelState.IsValid)
             {
                 ViewBag.Notification = SweetAlertHelper.CreateNotification(
-                    "Validation errors",
-                    "Please correct the errors in the form.",
-                    SweetAlertMessageType.warning
+                        "Validation errors",
+                        "Please complete all required fields",
+                        SweetAlertMessageType.warning
                     );
 
-                ViewBag.SelectedCategories = SelectedCategories;
+                ViewBag.SelectedCategories = selectedCategoryIds;
 
                 await LoadCombosAsync();
                 return View(cardDTO);
-            
             }
 
-            cardDTO.UserId = existing.UserId;
-            cardDTO.IsActive = existing.IsActive;
-            cardDTO.RegistrationDate = existing.RegistrationDate;
 
-            await _serviceCard.UpdateAsync(cardDTO);
+            cardDTO.IsActive = true;
+            cardDTO.RegistrationDate = DateOnly.FromDateTime(DateTime.Now);
 
-            await _serviceCategoryCard.DeleteByCardIdAsync(id);
 
-            if (SelectedCategories != null && SelectedCategories.Any())
+            var users = await _serviceUser.ListAsync();
+            var currentUser = users.FirstOrDefault();
+            if (currentUser == null)
             {
-                foreach (var catId in SelectedCategories)
-                {
-                    await _serviceCategoryCard.AddAsync(new CategoryCardDTO
-                    {
-                        CardId = id,
-                        CategoryId = catId,
-                        IsActive = true,
+                throw new Exception("No users found in database");
+            }
+            cardDTO.UserId = currentUser.Id;
 
+
+            List<CategoryCardDTO> categories = [];
+            if (selectedCategoryIds != null && selectedCategoryIds.Count > 0)
+            {
+                foreach (var catId in selectedCategoryIds)
+                {
+                    categories.Add(new CategoryCardDTO
+                    {
+                        CategoryId = catId,
+                        IsActive = true
                     });
                 }
             }
+            cardDTO.CategoryCard = categories;
 
-            if (files != null && files.Any())
+
+            List<ImageDTO> images = [];
+            if (files != null && files.Count > 0)
             {
                 foreach (var file in files)
                 {
                     using var ms = new MemoryStream();
                     await file.CopyToAsync(ms);
 
-                    await _serviceImage.AddAsync(new ImageDTO
+                    var imageBytes = ms.ToArray();
+
+                    images.Add(new ImageDTO
                     {
-                        CardId = id,
-                        ImageData = ms.ToArray(),
+                        ImageData = imageBytes,
                         IsActive = true
                     });
                 }
+
             }
+            cardDTO.Image = images;
+
+            await _serviceCard.AddAsync(cardDTO);
+
+            TempData["Notification"] = SweetAlertHelper.CreateNotification(
+                "Card created",
+                "The card was created successfully.",
+                SweetAlertMessageType.success
+
+            );
+
+            return RedirectToAction(nameof(Index));
+         }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit (CardDTO cardDTO,List<IFormFile> files, List<int> selectedCategoryIds)
+        {
+            FormValidation(cardDTO, files, selectedCategoryIds);
+            if (!ModelState.IsValid)
+            {
+                ViewBag.Notification = SweetAlertHelper.CreateNotification(
+                    "Validation errors",
+                    "Please correct the errors in the form.",
+                    SweetAlertMessageType.warning
+                );
+
+                ViewBag.SelectedCategories = selectedCategoryIds;
+
+                await LoadCombosAsync();
+                return View(cardDTO);
+
+            }
+
+            CardDTO existingCard;
+            try
+            {
+                existingCard = await _serviceCard.FindByIdAsync(cardDTO.Id);
+            }
+            catch (Exception)
+            {
+                TempData["Notification"] = SweetAlertHelper.CreateNotification(
+                        "Card not found",
+                        $"No card found with ID {cardDTO.Id}.",
+                        SweetAlertMessageType.error
+                );
+                return RedirectToAction(nameof(Index));
+            }
+
+            if(existingCard.AuctionStatus == "In Progress") 
+            {
+                TempData["Notification"] = SweetAlertHelper.CreateNotification(
+                        "Edit not allowed",
+                        "This card cannot be edited because it is in an active auction.",
+                        SweetAlertMessageType.warning
+                );
+                return RedirectToAction(nameof(Details), new { cardDTO.Id });
+            }
+
+            cardDTO.UserId = existingCard.UserId;
+            cardDTO.IsActive = existingCard.IsActive;
+            cardDTO.RegistrationDate = existingCard.RegistrationDate;
+
+            List<CategoryCardDTO> categories = [];
+            foreach (var catId in selectedCategoryIds)
+            {
+                categories.Add(new CategoryCardDTO
+                {
+                    CardId = cardDTO.Id,
+                    CategoryId = catId,
+                    IsActive = true,
+
+                });
+            }
+            cardDTO.CategoryCard = categories;
+
+            List<ImageDTO> images = [];
+            foreach (var file in files)
+            {
+                using var ms = new MemoryStream();
+                await file.CopyToAsync(ms);
+
+                images.Add(new ImageDTO
+                {
+                    CardId = cardDTO.Id,
+                    ImageData = ms.ToArray(),
+                    IsActive = true
+                });
+            }
+            cardDTO.Image = images;
+
+            await _serviceCard.UpdateAsync(cardDTO);
 
             TempData["Notification"] = SweetAlertHelper.CreateNotification(
                    "Card update",
                    "The card was updated successfully.",
                    SweetAlertMessageType.success
-                );
+            );
 
             return RedirectToAction(nameof(Details), new { id = cardDTO.Id });
         }

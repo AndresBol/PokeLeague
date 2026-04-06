@@ -11,8 +11,8 @@ namespace PokeLeague.Application.DTOs
     {
         public int Id { get; set; }
         public int UserId { get; set; }
-        public string SetId { get; set; } = string.Empty;
-        public string RarityId { get; set; } = string.Empty;
+        public string ? SetId { get; set; }
+        public string ? RarityId { get; set; } 
         public string LanguageCode { get; set; } = string.Empty;
 
         [DisplayName("Card Name")]

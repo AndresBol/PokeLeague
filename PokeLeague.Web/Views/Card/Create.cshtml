@@ -128,6 +128,7 @@
                         <p class="text-danger">No categories available</p>
                     }
                 </div>
+                <span data-valmsg-for="selectedCategoryIds" class="text-danger"></span>
             </div>
 
 
@@ -143,7 +144,7 @@
 
                     <div id="previewContainer" class="d-flex flex-wrap gap-3 mt-3"></div>
                 </div>
-            
+                <span data-valmsg-for="files" class="text-danger"></span>
             </div>
 
     
@@ -158,6 +159,15 @@
 @section Scripts
 {
     <script>
+
+        document.addEventListener("DOMContentLoaded", () =>{
+          const lenguageSelect =document.getElementById("LanguageCode");
+          const defaultLanguage = "en";
+
+          if(lenguageSelect && !lenguageSelect.value){
+              lenguageSelect.value =defaultLanguage;
+          }
+        });
         document.getElementById("fileInput").addEventListener("change", function(){
         const preview = document.getElementById("previewContainer");
         const fileNames = document.getElementById("fileNames");

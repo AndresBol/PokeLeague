@@ -125,6 +125,16 @@ namespace PokeLeague.Web.Controllers
             {
                 ModelState.AddModelError("", "At least one image is required.");
             }
+
+            if (string.IsNullOrEmpty(cardDTO.SetId)) 
+            {
+                ModelState.AddModelError("SetId", "Please select a set.");
+            }
+
+            if (string.IsNullOrEmpty(cardDTO.RarityId)) 
+            {
+                ModelState.AddModelError("RarityId", "Please select a rarity.");
+            }
         }
 
 

@@ -15,8 +15,8 @@
         <div class="col-md-6">
             <div class="input-group">
                 <div class="input-group-text"><i class="bi bi-translate"></i></div>
-                <select asp-for="LanguageCode" class="form-select">
-                    <option selected>Select @(Html.DisplayNameFor(model => model.Language))</option>
+                <select asp-for="LanguageCode" class="form-select" id="LanguageCode">
+                    <option value="" selected>Select @(Html.DisplayNameFor(model => model.Language))</option>
                     @foreach (var lang in ViewBag.Languages)
                     {
                         <option value="@lang.LanguageCode">@lang.LanguageName</option>
@@ -26,16 +26,10 @@
             </div>
         </div>
 
-        <div class="col-md-6">
+        <div class="col-md-6" id="serie-col">
             <div class="input-group">
                 <div class="input-group-text"><i class="bi bi-boxes"></i></div>
-                <select asp-for="SetId" class="form-select" id="serie-select">
-                    @foreach (var set in ViewBag.Set)
-                    {
-                        <option value="@set.Id">@set.Name </option>
-                    }
-                </select>
-                <span asp-validation-for="SetId" class="text-danger"></span>
+                <select class="form-select" id="serie-select"></select>
             </div>
         </div>
 
@@ -49,12 +43,50 @@
 @section Scripts
 {
     <script>
-        new TomSelect('#serie-select', {
+        const serieCol = document.getElementById('serie-col');
+        serieCol.style.display = 'none';
+
+        const serieSelect = new TomSelect('#serie-select', {
             placeholder: 'Search Serie...',
             allowEmptyOption: true,
             highlight: false,
             items: [],
         });
+
+        document.getElementById("LanguageCode").addEventListener("change", async function () {
+            const selectedLanguageCode = this.value;
+            serieSelect.clear(true);
+            serieSelect.clearOptions();
+
+            if (!selectedLanguageCode || selectedLanguageCode === 'Select Language') {
+                serieCol.style.display = 'none';
+                return;
+            }
+
+            const placeholderOption = this.querySelector('option[value=""]');
+            if (placeholderOption) {
+                placeholderOption.remove();
+            }
+
+            serieCol.style.display = '';
+
+            try {
+                const res = await fetch(`https://api.tcgdex.net/v2/${selectedLanguageCode}/series`);
+                if (!res.ok) throw new Error("Not found");
+
+                const series = await res.json();
+
+                serieSelect.clearOptions();
+                series.forEach(s => serieSelect.addOption({ value: s.id, text: s.name }));
+                serieSelect.refreshOptions(false);
+
+            } catch {
+                serieSelect.clearOptions();
+                serieSelect.addOption({ value: "0", text: "Series not available." });
+                serieSelect.refreshOptions(false);
+            }
+        });
+
         document.getElementById("fileInput").addEventListener("change", function(){
             const preview = document.getElementById("previewContainer");
             const fileNames = document.getElementById("fileNames");

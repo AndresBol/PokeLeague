@@ -32,7 +32,12 @@ namespace PokeLeague.Web.Controllers
             return View(cards);
         }
 
-        public async Task <IActionResult> Create()
+        public async Task<IActionResult> Create()
+        {
+            await LoadCombosAsync();
+            return View();
+        }
+        public async Task<IActionResult> GuidedCreate()
         {
             await LoadCombosAsync();
             return View();
@@ -216,7 +221,7 @@ namespace PokeLeague.Web.Controllers
             );
 
             return RedirectToAction(nameof(Index));
-         }
+        }
 
         [HttpPost]
         [ValidateAntiForgeryToken]

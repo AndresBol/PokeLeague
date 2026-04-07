@@ -1,0 +1,92 @@
+﻿@model PokeLeague.Application.DTOs.CardDTO
+
+@{
+    ViewData["Title"] = "Create Card";
+}
+
+<div class="container mt-4">
+
+    <h2>Create Card</h2>
+
+    <hr />
+
+    <form asp-controller="Card" asp-action="Create" class="row gy-3" method="post" enctype="multipart/form-data">
+
+        <div class="col-md-6">
+            <div class="input-group">
+                <div class="input-group-text"><i class="bi bi-translate"></i></div>
+                <select asp-for="LanguageCode" class="form-select">
+                    <option selected>Select @(Html.DisplayNameFor(model => model.Language))</option>
+                    @foreach (var lang in ViewBag.Languages)
+                    {
+                        <option value="@lang.LanguageCode">@lang.LanguageName</option>
+                    }
+                </select>
+                <span asp-validation-for="LanguageCode" class="text-danger"></span>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="input-group">
+                <div class="input-group-text"><i class="bi bi-boxes"></i></div>
+                <select asp-for="SetId" class="form-select" id="serie-select">
+                    @foreach (var set in ViewBag.Set)
+                    {
+                        <option value="@set.Id">@set.Name </option>
+                    }
+                </select>
+                <span asp-validation-for="SetId" class="text-danger"></span>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-success">Create</button>
+        <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+
+    </form>
+
+</div>
+
+@section Scripts
+{
+    <script>
+        new TomSelect('#serie-select', {
+            placeholder: 'Search Serie...',
+            allowEmptyOption: true,
+            highlight: false,
+            items: [],
+        });
+        document.getElementById("fileInput").addEventListener("change", function(){
+            const preview = document.getElementById("previewContainer");
+            const fileNames = document.getElementById("fileNames");
+
+            preview.innerHTML= "";
+
+            const files = Array.from(this.files);
+
+            fileNames.textContent = files.map(f => f.name).join(", ");
+
+            files.forEach(file =>{
+                if(!file.type.startsWith("image/")) return;
+
+                const reader = new FileReader();
+
+                reader.onload = function (e)
+                {
+                    const img =document.createElement("img");
+                    img.src = e.target.result;
+
+                    img.style.width ="120px";
+                    img.style.height="120px";
+                    img.style.objectFit= "cover";
+                    img.className = "rounded shadow";
+
+                    preview.appendChild(img);
+                };
+
+                reader.readAsDataURL(file);
+            });
+        
+        });
+    </script>
+}
+

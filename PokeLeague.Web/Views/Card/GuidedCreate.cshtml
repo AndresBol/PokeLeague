@@ -31,6 +31,10 @@
                 <div class="input-group-text"><i class="bi bi-boxes"></i></div>
                 <select class="form-select" id="set-select"></select>
             </div>
+            <div class="input-group" id="card-col" style="display: none;">
+                <div class="input-group-text"><i class="bi bi-card-image"></i></div>
+                <select class="form-select" id="card-select"></select>
+            </div>
 
             <button type="submit" class="btn btn-success">Create</button>
             <a asp-action="Index" class="btn btn-secondary">Cancel</a>
@@ -39,6 +43,7 @@
         <div id="card-content">
             <img id="serie-image" class="flex-image" loading="eager" style="display: none;">
             <img id="set-image" class="flex-image" loading="eager" style="display: none;">
+            <img id="card-image" class="flex-image" loading="eager" style="display: none;">
         </div>
     </div>
 </div>
@@ -50,9 +55,12 @@
         const imgSerie = document.getElementById("serie-image");
         const setCol = document.getElementById('set-col');
         const imgSet = document.getElementById("set-image");
+        const cardCol = document.getElementById('card-col');
+        const imgCard = document.getElementById("card-image");
         let selectedLanguageCode = "";
         let selectedSerieId = "";
         let selectedSetId = "";
+        let selectedCardId = "";
 
         const serieSelect = new TomSelect('#serie-select', {
             placeholder: 'Search Serie...',
@@ -68,6 +76,13 @@
             items: [],
         });
 
+        const cardSelect = new TomSelect('#card-select', {
+            placeholder: 'Search Card...',
+            allowEmptyOption: true,
+            highlight: false,
+            items: [],
+        });
+
         document.getElementById("LanguageCode").addEventListener("change", async function () {
             selectedLanguageCode = this.value;
             serieSelect.clear(true);
@@ -76,8 +91,12 @@
             setSelect.clear(true);
             setSelect.clearOptions();
             imgSet.style.display = 'none';
+            cardSelect.clear(true);
+            cardSelect.clearOptions();
+            imgCard.style.display = 'none';
 
             setCol.style.display = 'none';
+            cardCol.style.display = 'none';
 
             if (!selectedLanguageCode || selectedLanguageCode === 'Select Language') {
                 serieCol.style.display = 'none';
@@ -98,6 +117,11 @@
             setSelect.clear(true);
             setSelect.clearOptions();
             imgSet.style.display = 'none';
+            cardSelect.clear(true);
+            cardSelect.clearOptions();
+            imgCard.style.display = 'none';
+
+            cardCol.style.display = 'none';
 
             if (!selectedLanguageCode) {
                 serieCol.style.display = 'none';
@@ -113,12 +137,11 @@
 
                 if (serie.logo == null) {
                     imgSerie.style.display = 'none';
-                    return;
+                } else {
+                    imgSerie.src=`${serie.logo}.png`;
+                    imgSerie.alt = `${serie.name} Logo`;
+                    imgSerie.style.display = '';
                 }
-
-                imgSerie.src=`${serie.logo}.png`;
-                imgSerie.alt = `${serie.name} Logo`;
-                imgSerie.style.display = '';
 
                 await LoadSetSelect();
             } catch {
@@ -129,6 +152,11 @@
 
         document.getElementById("set-select").addEventListener("change", async function () {
             selectedSetId = this.value;
+
+            cardSelect.clear(true);
+            cardSelect.clearOptions();
+            imgCard.style.display = 'none';
+
             try {
                 const res = await fetch(`https://api.tcgdex.net/v2/${selectedLanguageCode}/sets/${selectedSetId}`);
                 if (!res.ok) throw new Error("Not found");
@@ -137,15 +165,38 @@
 
                 if (set.logo == null) {
                     imgSet.style.display = 'none';
+                } else {
+                    imgSet.src = `${set.logo}.png`;
+                    imgSet.alt = `${set.name} Logo`;
+                    imgSet.style.display = '';
+                }
+
+                await LoadCardSelect();
+            } catch {
+                imgSet.style.display = 'none';
+            }
+        });
+
+
+        document.getElementById("card-select").addEventListener("change", async function () {
+            selectedCardId = this.value;
+            try {
+                const res = await fetch(`https://api.tcgdex.net/v2/${selectedLanguageCode}/cards/${selectedSetId}-${selectedCardId}`);
+                if (!res.ok) throw new Error("Not found");
+
+                const card = await res.json();
+
+                if (card.image == null) {
+                    imgCard.style.display = 'none';
                     return;
                 }
 
-                imgSet.src = `${set.logo}.png`;
-                imgSet.alt = `${set.name} Logo`;
+                imgCard.src = `${card.image}/high.png`;
+                imgCard.alt = `${card.name}`;
 
-                imgSet.style.display = '';
+                imgCard.style.display = '';
             } catch {
-                imgSet.style.display = 'none';
+                imgCard.style.display = 'none';
             }
         });
 
@@ -219,6 +270,28 @@
                 setSelect.clearOptions();
                 setSelect.addOption({ value: "0", text: "Sets not available." });
                 setSelect.refreshOptions(false);
+            }
+        }
+
+        async function LoadCardSelect() {
+            cardCol.style.display = '';
+
+            try {
+                const res = await fetch(`https://api.tcgdex.net/v2/${selectedLanguageCode}/sets/${selectedSetId}`);
+                if (!res.ok) throw new Error("Not found");
+
+                const set = await res.json();
+
+                cardSelect.clearOptions();
+                cardSelect.refreshOptions(false);
+
+                if (set.cards) {
+                    set.cards.forEach(c => cardSelect.addOption({ value: c.localId, text: c.name }));
+                }
+            } catch {
+                cardSelect.clearOptions();
+                cardSelect.addOption({ value: "0", text: "Cards not available." });
+                cardSelect.refreshOptions(false);
             }
         }
     </script>

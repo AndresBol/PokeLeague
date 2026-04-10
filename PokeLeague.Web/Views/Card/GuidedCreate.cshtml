@@ -17,6 +17,7 @@
 
             @Html.AntiForgeryToken()
             <input type="hidden" asp-for="Name" id="hidden-card-name" />
+            <input type="hidden" asp-for="RarityId" id="hidden-rarity-id" />
 
             <div class="input-group">
                 <div class="input-group-text"><i class="bi bi-translate"></i></div>
@@ -41,7 +42,7 @@
             </div>
             <div class="input-group" id="rarity-col" style="display: none;">
                 <div class="input-group-text"><i class="bi bi-gem"></i></div>
-                <select class="form-select" id="rarity-select" name="RarityId"></select>
+                <select class="form-select" id="rarity-select"></select>
                 <span asp-validation-for="RarityId" class="text-danger"></span>
             </div>
             <div class="input-group" id="card-col" style="display: none;">
@@ -136,190 +137,175 @@
 @section Scripts
 {
     <script>
+        const API_BASE = 'https://api.tcgdex.net/v2';
+
         const serieCol = document.getElementById('serie-col');
-        const imgSerie = document.getElementById("serie-image");
         const setCol = document.getElementById('set-col');
-        const imgSet = document.getElementById("set-image");
         const rarityCol = document.getElementById('rarity-col');
         const cardCol = document.getElementById('card-col');
-        const imgCard = document.getElementById("card-image");
-        let selectedLanguageCode = "";
-        let selectedSerieId = "";
-        let selectedSetId = "";
-        let selectedRarity = "";
-        let selectedCardId = "";
+        const cardDetails = document.getElementById('card-details');
+        const imgSerie = document.getElementById('serie-image');
+        const imgSet = document.getElementById('set-image');
+        const imgCard = document.getElementById('card-image');
+        const hiddenName = document.getElementById('hidden-card-name');
+        const hiddenRarity = document.getElementById('hidden-rarity-id');
+
+        let selectedLanguageCode = '';
+        let selectedSerieId = '';
+        let selectedSetId = '';
+        let selectedRarity = '';
+        let selectedCardId = '';
 
         const serieSelect = new TomSelect('#serie-select', {
             placeholder: 'Search Serie...',
             allowEmptyOption: true,
             highlight: false,
-            items: [],
         });
 
         const setSelect = new TomSelect('#set-select', {
             placeholder: 'Search Set...',
             allowEmptyOption: true,
             highlight: false,
-            items: [],
         });
 
         const raritySelect = new TomSelect('#rarity-select', {
             placeholder: 'Search Rarity...',
             allowEmptyOption: true,
             highlight: false,
-            items: [],
         });
 
         const cardSelect = new TomSelect('#card-select', {
             placeholder: 'Search Card...',
             allowEmptyOption: true,
             highlight: false,
-            items: [],
         });
 
-        document.getElementById("LanguageCode").addEventListener("change", async function () {
-            selectedLanguageCode = this.value;
-            serieSelect.clear(true);
-            serieSelect.clearOptions();
-            imgSerie.style.display = 'none';
-            setSelect.clear(true);
-            setSelect.clearOptions();
-            imgSet.style.display = 'none';
-            raritySelect.clear(true);
-            raritySelect.clearOptions();
-            cardSelect.clear(true);
-            cardSelect.clearOptions();
-            imgCard.style.display = 'none';
+        function resetSelect(ts) {
+            ts.clear(true);
+            ts.clearOptions();
+        }
 
-            setCol.style.display = 'none';
-            rarityCol.style.display = 'none';
-            cardCol.style.display = 'none';
-            document.getElementById('card-details').style.display = 'none';
+        function resetFrom(level) {
+            const cascade = [
+                { ts: setSelect, col: setCol, img: imgSet },
+                { ts: raritySelect, col: rarityCol, img: null },
+                { ts: cardSelect, col: cardCol, img: imgCard },
+            ];
 
-            if (!selectedLanguageCode || selectedLanguageCode === 'Select Language') {
-                serieCol.style.display = 'none';
-                return;
+            for (let i = level; i < cascade.length; i++) {
+                resetSelect(cascade[i].ts);
+                cascade[i].col.style.display = 'none';
+                if (cascade[i].img) cascade[i].img.style.display = 'none';
             }
+
+            hiddenName.value = '';
+            hiddenRarity.value = '';
+            cardDetails.style.display = 'none';
+        }
+
+        function showImage(img, url, alt) {
+            if (!url) {
+                img.style.display = 'none';
+            } else {
+                img.src = `${url}.png`;
+                img.alt = alt;
+                img.style.display = '';
+            }
+        }
+
+
+        document.getElementById('LanguageCode').addEventListener('change', async function () {
+            selectedLanguageCode = this.value;
+
+            resetSelect(serieSelect);
+            imgSerie.style.display = 'none';
+            serieCol.style.display = 'none';
+            resetFrom(0);
+
+            if (!selectedLanguageCode) return;
 
             const placeholderOption = this.querySelector('option[value=""]');
-            if (placeholderOption) {
-                placeholderOption.remove();
-            }
+            if (placeholderOption) placeholderOption.remove();
 
             await LoadSerieSelect();
         });
 
-        document.getElementById("serie-select").addEventListener("change", async function () {
+        document.getElementById('serie-select').addEventListener('change', async function () {
             selectedSerieId = this.value;
-
-            setSelect.clear(true);
-            setSelect.clearOptions();
-            imgSet.style.display = 'none';
-            raritySelect.clear(true);
-            raritySelect.clearOptions();
-            cardSelect.clear(true);
-            cardSelect.clearOptions();
-            imgCard.style.display = 'none';
-
-            rarityCol.style.display = 'none';
-            cardCol.style.display = 'none';
-            document.getElementById('card-details').style.display = 'none';
+            resetFrom(0);
 
             if (!selectedLanguageCode) {
                 serieCol.style.display = 'none';
-                setCol.style.display = 'none';
                 return;
             }
 
             try {
-                const res = await fetch(`https://api.tcgdex.net/v2/${selectedLanguageCode}/series/${selectedSerieId}`);
-                if (!res.ok) throw new Error("Not found");
-
+                const res = await fetch(`${API_BASE}/${selectedLanguageCode}/series/${selectedSerieId}`);
+                if (!res.ok) throw new Error();
                 const serie = await res.json();
-
-                if (serie.logo == null) {
-                    imgSerie.style.display = 'none';
-                } else {
-                    imgSerie.src=`${serie.logo}.png`;
-                    imgSerie.alt = `${serie.name} Logo`;
-                    imgSerie.style.display = '';
-                }
-
+                showImage(imgSerie, serie.logo, `${serie.name} Logo`);
                 await LoadSetSelect();
             } catch {
                 imgSerie.style.display = 'none';
             }
         });
 
-
-        document.getElementById("set-select").addEventListener("change", async function () {
+        document.getElementById('set-select').addEventListener('change', async function () {
             selectedSetId = this.value;
-
-            raritySelect.clear(true);
-            raritySelect.clearOptions();
-            cardSelect.clear(true);
-            cardSelect.clearOptions();
-            imgCard.style.display = 'none';
-            document.getElementById('card-details').style.display = 'none';
+            resetFrom(1);
 
             try {
-                const res = await fetch(`https://api.tcgdex.net/v2/${selectedLanguageCode}/sets/${selectedSetId}`);
-                if (!res.ok) throw new Error("Not found");
-
+                const res = await fetch(`${API_BASE}/${selectedLanguageCode}/sets/${selectedSetId}`);
+                if (!res.ok) throw new Error();
                 const set = await res.json();
-
-                if (set.logo == null) {
-                    imgSet.style.display = 'none';
-                } else {
-                    imgSet.src = `${set.logo}.png`;
-                    imgSet.alt = `${set.name} Logo`;
-                    imgSet.style.display = '';
-                }
-
+                showImage(imgSet, set.logo, `${set.name} Logo`);
                 await LoadRaritySelect();
             } catch {
                 imgSet.style.display = 'none';
             }
         });
 
-
-        document.getElementById("rarity-select").addEventListener("change", async function () {
+        document.getElementById('rarity-select').addEventListener('change', async function () {
             selectedRarity = this.value;
-
-            cardSelect.clear(true);
-            cardSelect.clearOptions();
-            imgCard.style.display = 'none';
-            document.getElementById('card-details').style.display = 'none';
-
+            resetFrom(2);
             await LoadCardSelect();
         });
 
-
-        document.getElementById("card-select").addEventListener("change", async function () {
+        document.getElementById('card-select').addEventListener('change', async function () {
             selectedCardId = this.value;
-            const cardDetails = document.getElementById('card-details');
 
             if (!selectedCardId) {
                 imgCard.style.display = 'none';
+                hiddenName.value = '';
+                hiddenRarity.value = '';
                 cardDetails.style.display = 'none';
                 return;
             }
 
             try {
-                const res = await fetch(`https://api.tcgdex.net/v2/${selectedLanguageCode}/cards/${selectedSetId}-${selectedCardId}`);
-                if (!res.ok) throw new Error("Not found");
+                const cardId = `${selectedSetId}-${selectedCardId}`;
+                const fetches = [fetch(`${API_BASE}/${selectedLanguageCode}/cards/${cardId}`)];
 
-                const card = await res.json();
-
-                if (card.image == null) {
-                    imgCard.style.display = 'none';
-                } else {
-                    imgCard.src = `${card.image}/high.png`;
-                    imgCard.alt = `${card.name}`;
-                    imgCard.style.display = '';
+                if (selectedLanguageCode !== 'en') {
+                    fetches.push(fetch(`${API_BASE}/en/cards/${cardId}`));
                 }
 
-                document.getElementById('hidden-card-name').value = card.name ?? '';
+                const responses = await Promise.all(fetches);
+                if (responses.some(r => !r.ok)) throw new Error();
+
+                const card = await responses[0].json();
+                const enCard = responses.length > 1 ? await responses[1].json() : card;
+
+                if (card.image) {
+                    imgCard.src = `${card.image}/high.png`;
+                    imgCard.alt = card.name;
+                    imgCard.style.display = '';
+                } else {
+                    imgCard.style.display = 'none';
+                }
+
+                hiddenName.value = card.name ?? '';
+                hiddenRarity.value = enCard.rarity ?? '';
                 cardDetails.style.display = '';
             } catch {
                 imgCard.style.display = 'none';
@@ -327,38 +313,30 @@
             }
         });
 
-        document.getElementById("fileInput").addEventListener("change", function(){
-            const preview = document.getElementById("previewContainer");
-            const fileNames = document.getElementById("fileNames");
-
-            preview.innerHTML= "";
+        document.getElementById('fileInput').addEventListener('change', function () {
+            const preview = document.getElementById('previewContainer');
+            const fileNames = document.getElementById('fileNames');
+            preview.innerHTML = '';
 
             const files = Array.from(this.files);
+            fileNames.textContent = files.map(f => f.name).join(', ');
 
-            fileNames.textContent = files.map(f => f.name).join(", ");
-
-            files.forEach(file =>{
-                if(!file.type.startsWith("image/")) return;
-
+            files.forEach(file => {
+                if (!file.type.startsWith('image/')) return;
                 const reader = new FileReader();
-
-                reader.onload = function (e)
-                {
-                    const img =document.createElement("img");
+                reader.onload = function (e) {
+                    const img = document.createElement('img');
                     img.src = e.target.result;
-
-                    img.style.width ="120px";
-                    img.style.height="120px";
-                    img.style.objectFit= "cover";
-                    img.className = "rounded shadow";
-
+                    img.style.width = '120px';
+                    img.style.height = '120px';
+                    img.style.objectFit = 'cover';
+                    img.className = 'rounded shadow';
                     preview.appendChild(img);
                 };
-
                 reader.readAsDataURL(file);
             });
-        
         });
+
 
         async function hasCards(url) {
             try {
@@ -371,38 +349,40 @@
             }
         }
 
+        async function filterByCards(items, urlBuilder) {
+            const checks = items.map(async item => {
+                const has = await hasCards(urlBuilder(item));
+                return has ? item : null;
+            });
+            return (await Promise.all(checks)).filter(Boolean);
+        }
+
         async function serieHasCards(serieId) {
             try {
-                const res = await fetch(`https://api.tcgdex.net/v2/${selectedLanguageCode}/sets?serie=${serieId}`);
+                const res = await fetch(`${API_BASE}/${selectedLanguageCode}/sets?serie=${serieId}`);
                 if (!res.ok) return true;
                 const sets = await res.json();
                 if (sets.length === 0) return false;
 
                 const probes = sets.map(s =>
-                    hasCards(`https://api.tcgdex.net/v2/${selectedLanguageCode}/cards?set.id=eq:${encodeURIComponent(s.id)}&pagination:itemsPerPage=1`)
+                    hasCards(`${API_BASE}/${selectedLanguageCode}/cards?set.id=eq:${encodeURIComponent(s.id)}&pagination:itemsPerPage=1`)
                         .then(has => has ? Promise.resolve(true) : Promise.reject())
                 );
-
                 return await Promise.any(probes).catch(() => false);
             } catch {
                 return true;
             }
         }
 
+
         async function LoadSerieSelect() {
             serieCol.style.display = '';
-
             try {
-                const res = await fetch(`https://api.tcgdex.net/v2/${selectedLanguageCode}/series`);
-                if (!res.ok) throw new Error("Not found");
+                const res = await fetch(`${API_BASE}/${selectedLanguageCode}/series`);
+                if (!res.ok) throw new Error();
 
                 const allSeries = await res.json();
-
-                const checks = allSeries.map(async s => {
-                    const hasAny = await serieHasCards(s.id);
-                    return hasAny ? s : null;
-                });
-
+                const checks = allSeries.map(async s => (await serieHasCards(s.id)) ? s : null);
                 const series = (await Promise.all(checks)).filter(Boolean);
 
                 serieSelect.clearOptions();
@@ -410,52 +390,43 @@
                 series.forEach(s => serieSelect.addOption({ value: s.id, text: s.name }));
             } catch {
                 serieSelect.clearOptions();
-                serieSelect.addOption({ value: "0", text: "Series not available." });
+                serieSelect.addOption({ value: '0', text: 'Series not available.' });
                 serieSelect.refreshOptions(false);
             }
         }
 
         async function LoadSetSelect() {
             setCol.style.display = '';
-
             try {
-                const res = await fetch(`https://api.tcgdex.net/v2/${selectedLanguageCode}/sets?serie=${selectedSerieId}`);
-                if (!res.ok) throw new Error("Not found");
+                const res = await fetch(`${API_BASE}/${selectedLanguageCode}/sets?serie=${selectedSerieId}`);
+                if (!res.ok) throw new Error();
 
                 const allSets = await res.json();
-
-                const checks = allSets.map(async s => {
-                    const hasAny = await hasCards(`https://api.tcgdex.net/v2/${selectedLanguageCode}/cards?set.id=eq:${encodeURIComponent(s.id)}&pagination:itemsPerPage=1`);
-                    return hasAny ? s : null;
-                });
-
-                const sets = (await Promise.all(checks)).filter(Boolean);
+                const sets = await filterByCards(allSets, s =>
+                    `${API_BASE}/${selectedLanguageCode}/cards?set.id=eq:${encodeURIComponent(s.id)}&pagination:itemsPerPage=1`
+                );
 
                 setSelect.clearOptions();
                 setSelect.refreshOptions(false);
                 sets.forEach(s => setSelect.addOption({ value: s.id, text: s.name }));
             } catch {
                 setSelect.clearOptions();
-                setSelect.addOption({ value: "0", text: "Sets not available." });
+                setSelect.addOption({ value: '0', text: 'Sets not available.' });
                 setSelect.refreshOptions(false);
             }
         }
 
         async function LoadRaritySelect() {
             rarityCol.style.display = '';
-
             try {
-                const res = await fetch(`https://api.tcgdex.net/v2/${selectedLanguageCode}/rarities`);
-                if (!res.ok) throw new Error("Not found");
+                const res = await fetch(`${API_BASE}/${selectedLanguageCode}/rarities`);
+                if (!res.ok) throw new Error();
 
                 const allRarities = await res.json();
-
-                const checks = allRarities.map(async r => {
-                    const hasAny = await hasCards(`https://api.tcgdex.net/v2/${selectedLanguageCode}/cards?set.id=eq:${encodeURIComponent(selectedSetId)}&rarity=eq:${encodeURIComponent(r)}&pagination:itemsPerPage=1`);
-                    return hasAny ? r : null;
-                });
-
-                const rarities = (await Promise.all(checks)).filter(Boolean).sort();
+                const rarities = await filterByCards(allRarities, r =>
+                    `${API_BASE}/${selectedLanguageCode}/cards?set.id=eq:${encodeURIComponent(selectedSetId)}&rarity=eq:${encodeURIComponent(r)}&pagination:itemsPerPage=1`
+                );
+                rarities.sort();
 
                 raritySelect.clearOptions();
                 raritySelect.refreshOptions(false);
@@ -467,18 +438,17 @@
                 await LoadCardSelect();
             } catch {
                 raritySelect.clearOptions();
-                raritySelect.addOption({ value: "0", text: "Rarities not available." });
+                raritySelect.addOption({ value: '0', text: 'Rarities not available.' });
                 raritySelect.refreshOptions(false);
             }
         }
 
         async function LoadCardSelect() {
             cardCol.style.display = '';
-
             try {
                 const rarityParam = selectedRarity ? `&rarity=eq:${encodeURIComponent(selectedRarity)}` : '';
-                const res = await fetch(`https://api.tcgdex.net/v2/${selectedLanguageCode}/cards?set.id=eq:${encodeURIComponent(selectedSetId)}${rarityParam}`);
-                if (!res.ok) throw new Error("Not found");
+                const res = await fetch(`${API_BASE}/${selectedLanguageCode}/cards?set.id=eq:${encodeURIComponent(selectedSetId)}${rarityParam}`);
+                if (!res.ok) throw new Error();
 
                 const cards = await res.json();
 
@@ -487,7 +457,7 @@
                 cards.forEach(c => cardSelect.addOption({ value: c.localId, text: c.name }));
             } catch {
                 cardSelect.clearOptions();
-                cardSelect.addOption({ value: "0", text: "Cards not available." });
+                cardSelect.addOption({ value: '0', text: 'Cards not available.' });
                 cardSelect.refreshOptions(false);
             }
         }

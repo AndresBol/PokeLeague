@@ -59,6 +59,14 @@ body {
     border-radius: 5px;
 }
 
+.flex-image {
+    width: 385px;
+    height: auto;
+    max-height: 450px;
+    flex-grow: 0;
+    flex-shrink: 0;
+}
+
 /* User - Detail */
 
 .userLogo {

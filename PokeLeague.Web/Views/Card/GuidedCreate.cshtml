@@ -9,10 +9,8 @@
     <h2>Create Card</h2>
 
     <hr />
-
-    <form asp-controller="Card" asp-action="Create" class="row gy-3" method="post" enctype="multipart/form-data">
-
-        <div class="col-md-6">
+    <div class="d-flex flex-row justify-content-start align-items-start gap-5">
+        <form asp-controller="Card" asp-action="Create" class="row g-3 w-100" method="post" enctype="multipart/form-data">
             <div class="input-group">
                 <div class="input-group-text"><i class="bi bi-translate"></i></div>
                 <select asp-for="LanguageCode" class="form-select" id="LanguageCode">
@@ -24,26 +22,29 @@
                 </select>
                 <span asp-validation-for="LanguageCode" class="text-danger"></span>
             </div>
-        </div>
 
-        <div class="col-md-6" id="serie-col">
-            <div class="input-group">
+            <div class="input-group" id="serie-col">
                 <div class="input-group-text"><i class="bi bi-boxes"></i></div>
                 <select class="form-select" id="serie-select"></select>
             </div>
+
+            <button type="submit" class="btn btn-success">Create</button>
+            <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+        </form>
+
+        <div id="card-content">
+            <img id="serie-image" class="flex-image" loading="eager" style="display: none;">
         </div>
-
-        <button type="submit" class="btn btn-success">Create</button>
-        <a asp-action="Index" class="btn btn-secondary">Cancel</a>
-
-    </form>
-
+    </div>
 </div>
 
 @section Scripts
 {
     <script>
         const serieCol = document.getElementById('serie-col');
+        let selectedLanguageCode = "";
+        let selectedSerieId = "";
+
         serieCol.style.display = 'none';
 
         const serieSelect = new TomSelect('#serie-select', {
@@ -54,7 +55,7 @@
         });
 
         document.getElementById("LanguageCode").addEventListener("change", async function () {
-            const selectedLanguageCode = this.value;
+            selectedLanguageCode = this.value;
             serieSelect.clear(true);
             serieSelect.clearOptions();
 
@@ -77,13 +78,36 @@
                 const series = await res.json();
 
                 serieSelect.clearOptions();
-                series.forEach(s => serieSelect.addOption({ value: s.id, text: s.name }));
                 serieSelect.refreshOptions(false);
 
+                series.forEach(s => serieSelect.addOption({ value: s.id, text: s.name }));
             } catch {
                 serieSelect.clearOptions();
                 serieSelect.addOption({ value: "0", text: "Series not available." });
                 serieSelect.refreshOptions(false);
+            }
+        });
+
+        document.getElementById("serie-select").addEventListener("change", async function () {
+            selectedSerieId = this.value;
+            const imgSerie = document.getElementById("serie-image");
+            try {
+                const res = await fetch(`https://api.tcgdex.net/v2/${selectedLanguageCode}/series/${selectedSerieId}`);
+                if (!res.ok) throw new Error("Not found");
+
+                const serie = await res.json();
+
+                if (serie.logo == null) {
+                    imgSerie.style.display = 'none';
+                    return;
+                }
+
+                imgSerie.src=`${serie.logo}.png`;
+                imgSerie.alt = `${serie.name} Logo`;
+
+                imgSerie.style.display = '';
+            } catch {
+                imgSerie.style.display = 'none';
             }
         });
 

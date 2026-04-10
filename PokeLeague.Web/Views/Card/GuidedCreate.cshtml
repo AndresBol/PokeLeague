@@ -17,15 +17,19 @@
                     <option value="" selected>Select @(Html.DisplayNameFor(model => model.Language))</option>
                     @foreach (var lang in ViewBag.Languages)
                     {
-                        <option value="@lang.LanguageCode">@lang.LanguageName</option>
+                    <option value="@lang.LanguageCode">@lang.LanguageName</option>
                     }
                 </select>
                 <span asp-validation-for="LanguageCode" class="text-danger"></span>
             </div>
 
-            <div class="input-group" id="serie-col">
+            <div class="input-group" id="serie-col" style="display: none;">
                 <div class="input-group-text"><i class="bi bi-boxes"></i></div>
                 <select class="form-select" id="serie-select"></select>
+            </div>
+            <div class="input-group" id="set-col" style="display: none;">
+                <div class="input-group-text"><i class="bi bi-boxes"></i></div>
+                <select class="form-select" id="set-select"></select>
             </div>
 
             <button type="submit" class="btn btn-success">Create</button>
@@ -34,6 +38,7 @@
 
         <div id="card-content">
             <img id="serie-image" class="flex-image" loading="eager" style="display: none;">
+            <img id="set-image" class="flex-image" loading="eager" style="display: none;">
         </div>
     </div>
 </div>
@@ -42,13 +47,22 @@
 {
     <script>
         const serieCol = document.getElementById('serie-col');
+        const imgSerie = document.getElementById("serie-image");
+        const setCol = document.getElementById('set-col');
+        const imgSet = document.getElementById("set-image");
         let selectedLanguageCode = "";
         let selectedSerieId = "";
-
-        serieCol.style.display = 'none';
+        let selectedSetId = "";
 
         const serieSelect = new TomSelect('#serie-select', {
             placeholder: 'Search Serie...',
+            allowEmptyOption: true,
+            highlight: false,
+            items: [],
+        });
+
+        const setSelect = new TomSelect('#set-select', {
+            placeholder: 'Search Set...',
             allowEmptyOption: true,
             highlight: false,
             items: [],
@@ -58,6 +72,12 @@
             selectedLanguageCode = this.value;
             serieSelect.clear(true);
             serieSelect.clearOptions();
+            imgSerie.style.display = 'none';
+            setSelect.clear(true);
+            setSelect.clearOptions();
+            imgSet.style.display = 'none';
+
+            setCol.style.display = 'none';
 
             if (!selectedLanguageCode || selectedLanguageCode === 'Select Language') {
                 serieCol.style.display = 'none';
@@ -69,28 +89,22 @@
                 placeholderOption.remove();
             }
 
-            serieCol.style.display = '';
-
-            try {
-                const res = await fetch(`https://api.tcgdex.net/v2/${selectedLanguageCode}/series`);
-                if (!res.ok) throw new Error("Not found");
-
-                const series = await res.json();
-
-                serieSelect.clearOptions();
-                serieSelect.refreshOptions(false);
-
-                series.forEach(s => serieSelect.addOption({ value: s.id, text: s.name }));
-            } catch {
-                serieSelect.clearOptions();
-                serieSelect.addOption({ value: "0", text: "Series not available." });
-                serieSelect.refreshOptions(false);
-            }
+            await LoadSerieSelect();
         });
 
         document.getElementById("serie-select").addEventListener("change", async function () {
             selectedSerieId = this.value;
-            const imgSerie = document.getElementById("serie-image");
+
+            setSelect.clear(true);
+            setSelect.clearOptions();
+            imgSet.style.display = 'none';
+
+            if (!selectedLanguageCode) {
+                serieCol.style.display = 'none';
+                setCol.style.display = 'none';
+                return;
+            }
+
             try {
                 const res = await fetch(`https://api.tcgdex.net/v2/${selectedLanguageCode}/series/${selectedSerieId}`);
                 if (!res.ok) throw new Error("Not found");
@@ -104,10 +118,34 @@
 
                 imgSerie.src=`${serie.logo}.png`;
                 imgSerie.alt = `${serie.name} Logo`;
-
                 imgSerie.style.display = '';
+
+                await LoadSetSelect();
             } catch {
                 imgSerie.style.display = 'none';
+            }
+        });
+
+
+        document.getElementById("set-select").addEventListener("change", async function () {
+            selectedSetId = this.value;
+            try {
+                const res = await fetch(`https://api.tcgdex.net/v2/${selectedLanguageCode}/sets/${selectedSetId}`);
+                if (!res.ok) throw new Error("Not found");
+
+                const set = await res.json();
+
+                if (set.logo == null) {
+                    imgSet.style.display = 'none';
+                    return;
+                }
+
+                imgSet.src = `${set.logo}.png`;
+                imgSet.alt = `${set.name} Logo`;
+
+                imgSet.style.display = '';
+            } catch {
+                imgSet.style.display = 'none';
             }
         });
 
@@ -143,6 +181,46 @@
             });
         
         });
+
+        async function LoadSerieSelect() {
+            serieCol.style.display = '';
+
+            try {
+                const res = await fetch(`https://api.tcgdex.net/v2/${selectedLanguageCode}/series`);
+                if (!res.ok) throw new Error("Not found");
+
+                const series = await res.json();
+
+                serieSelect.clearOptions();
+                serieSelect.refreshOptions(false);
+
+                series.forEach(s => serieSelect.addOption({ value: s.id, text: s.name }));
+            } catch {
+                serieSelect.clearOptions();
+                serieSelect.addOption({ value: "0", text: "Series not available." });
+                serieSelect.refreshOptions(false);
+            }
+        }
+
+        async function LoadSetSelect() {
+            setCol.style.display = '';
+
+            try {
+                const res = await fetch(`https://api.tcgdex.net/v2/${selectedLanguageCode}/sets?serie=${selectedSerieId}`);
+                if (!res.ok) throw new Error("Not found");
+
+                const sets = await res.json();
+
+                setSelect.clearOptions();
+                setSelect.refreshOptions(false);
+
+                sets.forEach(s => setSelect.addOption({ value: s.id, text: s.name }));
+            } catch {
+                setSelect.clearOptions();
+                setSelect.addOption({ value: "0", text: "Sets not available." });
+                setSelect.refreshOptions(false);
+            }
+        }
     </script>
 }
 

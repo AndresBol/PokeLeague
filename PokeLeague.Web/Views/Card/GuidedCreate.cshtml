@@ -2,6 +2,9 @@
 
 @{
     ViewData["Title"] = "Create Card";
+    var user = ViewBag.User;
+    var categories = ViewBag.Categories as IEnumerable<dynamic>;
+    var selectedCategories = ViewBag.SelectedCategories as List<int>;
 }
 
 <div class="container mt-4">
@@ -11,6 +14,10 @@
     <hr />
     <div class="d-flex flex-row justify-content-start align-items-start gap-5">
         <form asp-controller="Card" asp-action="Create" class="row g-3 w-100" method="post" enctype="multipart/form-data">
+
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="Name" id="hidden-card-name" />
+
             <div class="input-group">
                 <div class="input-group-text"><i class="bi bi-translate"></i></div>
                 <select asp-for="LanguageCode" class="form-select" id="LanguageCode">
@@ -29,15 +36,89 @@
             </div>
             <div class="input-group" id="set-col" style="display: none;">
                 <div class="input-group-text"><i class="bi bi-box"></i></div>
-                <select class="form-select" id="set-select"></select>
+                <select class="form-select" id="set-select" name="SetId"></select>
+                <span asp-validation-for="SetId" class="text-danger"></span>
             </div>
             <div class="input-group" id="rarity-col" style="display: none;">
                 <div class="input-group-text"><i class="bi bi-gem"></i></div>
-                <select class="form-select" id="rarity-select"></select>
+                <select class="form-select" id="rarity-select" name="RarityId"></select>
+                <span asp-validation-for="RarityId" class="text-danger"></span>
             </div>
             <div class="input-group" id="card-col" style="display: none;">
                 <div class="input-group-text"><i class="bi bi-card-image"></i></div>
                 <select class="form-select" id="card-select"></select>
+            </div>
+
+            <div id="card-details" style="display: none;">
+
+                <div class="row g-3">
+
+                    <div class="col-12">
+                        <label asp-for="Description" class="form-label"></label>
+                        <textarea asp-for="Description" class="form-control"></textarea>
+                        <span asp-validation-for="Description" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Condition</label>
+                        <select asp-for="IsNew" class="form-select">
+                            <option value="true">New</option>
+                            <option value="false">Used</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Grade" class="form-label"></label>
+                        <input asp-for="Grade" class="form-control" type="number" min="1" max="10" />
+                        <span asp-validation-for="Grade" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Seller</label>
+                        <input class="form-control" value="@user?.Username" readonly />
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label">Categories</label>
+                        <div class="d-flex flex-wrap gap-3">
+                            @if (categories != null)
+                            {
+                                foreach (var cat in categories)
+                                {
+                                    var isChecked = selectedCategories != null && selectedCategories.Contains((int)cat.Id);
+                                    <div class="form-check">
+                                        <input type="checkbox"
+                                               name="selectedCategoryIds"
+                                               value="@cat.Id"
+                                               class="form-check-input"
+                                               checked="@isChecked" />
+                                        <label class="form-check-label">@cat.Name</label>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <p class="text-danger">No categories available</p>
+                            }
+                        </div>
+                        <span data-valmsg-for="selectedCategoryIds" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label">Images</label>
+                        <div id="imageContainer">
+                            <input type="file" id="fileInput" name="files" multiple hidden />
+                            <button type="button" class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                                Select Image
+                            </button>
+                            <span id="fileNames" class="ms-2 text-muted"></span>
+                            <div id="previewContainer" class="d-flex flex-wrap gap-3 mt-3"></div>
+                        </div>
+                        <span data-valmsg-for="files" class="text-danger"></span>
+                    </div>
+
+                </div>
+
             </div>
 
             <button type="submit" class="btn btn-success">Create</button>
@@ -113,6 +194,7 @@
             setCol.style.display = 'none';
             rarityCol.style.display = 'none';
             cardCol.style.display = 'none';
+            document.getElementById('card-details').style.display = 'none';
 
             if (!selectedLanguageCode || selectedLanguageCode === 'Select Language') {
                 serieCol.style.display = 'none';
@@ -141,6 +223,7 @@
 
             rarityCol.style.display = 'none';
             cardCol.style.display = 'none';
+            document.getElementById('card-details').style.display = 'none';
 
             if (!selectedLanguageCode) {
                 serieCol.style.display = 'none';
@@ -177,6 +260,7 @@
             cardSelect.clear(true);
             cardSelect.clearOptions();
             imgCard.style.display = 'none';
+            document.getElementById('card-details').style.display = 'none';
 
             try {
                 const res = await fetch(`https://api.tcgdex.net/v2/${selectedLanguageCode}/sets/${selectedSetId}`);
@@ -205,6 +289,7 @@
             cardSelect.clear(true);
             cardSelect.clearOptions();
             imgCard.style.display = 'none';
+            document.getElementById('card-details').style.display = 'none';
 
             await LoadCardSelect();
         });
@@ -212,6 +297,14 @@
 
         document.getElementById("card-select").addEventListener("change", async function () {
             selectedCardId = this.value;
+            const cardDetails = document.getElementById('card-details');
+
+            if (!selectedCardId) {
+                imgCard.style.display = 'none';
+                cardDetails.style.display = 'none';
+                return;
+            }
+
             try {
                 const res = await fetch(`https://api.tcgdex.net/v2/${selectedLanguageCode}/cards/${selectedSetId}-${selectedCardId}`);
                 if (!res.ok) throw new Error("Not found");
@@ -220,15 +313,17 @@
 
                 if (card.image == null) {
                     imgCard.style.display = 'none';
-                    return;
+                } else {
+                    imgCard.src = `${card.image}/high.png`;
+                    imgCard.alt = `${card.name}`;
+                    imgCard.style.display = '';
                 }
 
-                imgCard.src = `${card.image}/high.png`;
-                imgCard.alt = `${card.name}`;
-
-                imgCard.style.display = '';
+                document.getElementById('hidden-card-name').value = card.name ?? '';
+                cardDetails.style.display = '';
             } catch {
                 imgCard.style.display = 'none';
+                cardDetails.style.display = 'none';
             }
         });
 
@@ -265,6 +360,35 @@
         
         });
 
+        async function hasCards(url) {
+            try {
+                const res = await fetch(url);
+                if (!res.ok) return true;
+                const cards = await res.json();
+                return cards.length > 0;
+            } catch {
+                return true;
+            }
+        }
+
+        async function serieHasCards(serieId) {
+            try {
+                const res = await fetch(`https://api.tcgdex.net/v2/${selectedLanguageCode}/sets?serie=${serieId}`);
+                if (!res.ok) return true;
+                const sets = await res.json();
+                if (sets.length === 0) return false;
+
+                const probes = sets.map(s =>
+                    hasCards(`https://api.tcgdex.net/v2/${selectedLanguageCode}/cards?set.id=eq:${encodeURIComponent(s.id)}&pagination:itemsPerPage=1`)
+                        .then(has => has ? Promise.resolve(true) : Promise.reject())
+                );
+
+                return await Promise.any(probes).catch(() => false);
+            } catch {
+                return true;
+            }
+        }
+
         async function LoadSerieSelect() {
             serieCol.style.display = '';
 
@@ -272,11 +396,17 @@
                 const res = await fetch(`https://api.tcgdex.net/v2/${selectedLanguageCode}/series`);
                 if (!res.ok) throw new Error("Not found");
 
-                const series = await res.json();
+                const allSeries = await res.json();
+
+                const checks = allSeries.map(async s => {
+                    const hasAny = await serieHasCards(s.id);
+                    return hasAny ? s : null;
+                });
+
+                const series = (await Promise.all(checks)).filter(Boolean);
 
                 serieSelect.clearOptions();
                 serieSelect.refreshOptions(false);
-
                 series.forEach(s => serieSelect.addOption({ value: s.id, text: s.name }));
             } catch {
                 serieSelect.clearOptions();
@@ -292,11 +422,17 @@
                 const res = await fetch(`https://api.tcgdex.net/v2/${selectedLanguageCode}/sets?serie=${selectedSerieId}`);
                 if (!res.ok) throw new Error("Not found");
 
-                const sets = await res.json();
+                const allSets = await res.json();
+
+                const checks = allSets.map(async s => {
+                    const hasAny = await hasCards(`https://api.tcgdex.net/v2/${selectedLanguageCode}/cards?set.id=eq:${encodeURIComponent(s.id)}&pagination:itemsPerPage=1`);
+                    return hasAny ? s : null;
+                });
+
+                const sets = (await Promise.all(checks)).filter(Boolean);
 
                 setSelect.clearOptions();
                 setSelect.refreshOptions(false);
-
                 sets.forEach(s => setSelect.addOption({ value: s.id, text: s.name }));
             } catch {
                 setSelect.clearOptions();
@@ -315,14 +451,11 @@
                 const allRarities = await res.json();
 
                 const checks = allRarities.map(async r => {
-                    const probe = await fetch(`https://api.tcgdex.net/v2/${selectedLanguageCode}/cards?set.id=eq:${encodeURIComponent(selectedSetId)}&rarity=eq:${encodeURIComponent(r)}&pagination:itemsPerPage=1`);
-                    if (!probe.ok) return null;
-                    const cards = await probe.json();
-                    return cards.length > 0 ? r : null;
+                    const hasAny = await hasCards(`https://api.tcgdex.net/v2/${selectedLanguageCode}/cards?set.id=eq:${encodeURIComponent(selectedSetId)}&rarity=eq:${encodeURIComponent(r)}&pagination:itemsPerPage=1`);
+                    return hasAny ? r : null;
                 });
 
-                const results = await Promise.all(checks);
-                const rarities = results.filter(Boolean).sort();
+                const rarities = (await Promise.all(checks)).filter(Boolean).sort();
 
                 raritySelect.clearOptions();
                 raritySelect.refreshOptions(false);

@@ -123,12 +123,12 @@ namespace PokeLeague.Web.Controllers
 
             if (selectedCategoryIds == null || selectedCategoryIds.Count == 0)
             {
-                ModelState.AddModelError("", "At least one category is required.");
+                ModelState.AddModelError("selectedCategoryIds", "At least one category is required.");
             }
 
             if (files == null || files.Count == 0)
             {
-                ModelState.AddModelError("", "At least one image is required.");
+                ModelState.AddModelError("files", "At least one image is required.");
             }
 
             if (string.IsNullOrEmpty(cardDTO.SetId)) 

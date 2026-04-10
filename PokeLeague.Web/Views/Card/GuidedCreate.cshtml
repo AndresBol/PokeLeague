@@ -28,8 +28,12 @@
                 <select class="form-select" id="serie-select"></select>
             </div>
             <div class="input-group" id="set-col" style="display: none;">
-                <div class="input-group-text"><i class="bi bi-boxes"></i></div>
+                <div class="input-group-text"><i class="bi bi-box"></i></div>
                 <select class="form-select" id="set-select"></select>
+            </div>
+            <div class="input-group" id="rarity-col" style="display: none;">
+                <div class="input-group-text"><i class="bi bi-gem"></i></div>
+                <select class="form-select" id="rarity-select"></select>
             </div>
             <div class="input-group" id="card-col" style="display: none;">
                 <div class="input-group-text"><i class="bi bi-card-image"></i></div>
@@ -55,11 +59,13 @@
         const imgSerie = document.getElementById("serie-image");
         const setCol = document.getElementById('set-col');
         const imgSet = document.getElementById("set-image");
+        const rarityCol = document.getElementById('rarity-col');
         const cardCol = document.getElementById('card-col');
         const imgCard = document.getElementById("card-image");
         let selectedLanguageCode = "";
         let selectedSerieId = "";
         let selectedSetId = "";
+        let selectedRarity = "";
         let selectedCardId = "";
 
         const serieSelect = new TomSelect('#serie-select', {
@@ -71,6 +77,13 @@
 
         const setSelect = new TomSelect('#set-select', {
             placeholder: 'Search Set...',
+            allowEmptyOption: true,
+            highlight: false,
+            items: [],
+        });
+
+        const raritySelect = new TomSelect('#rarity-select', {
+            placeholder: 'Search Rarity...',
             allowEmptyOption: true,
             highlight: false,
             items: [],
@@ -91,11 +104,14 @@
             setSelect.clear(true);
             setSelect.clearOptions();
             imgSet.style.display = 'none';
+            raritySelect.clear(true);
+            raritySelect.clearOptions();
             cardSelect.clear(true);
             cardSelect.clearOptions();
             imgCard.style.display = 'none';
 
             setCol.style.display = 'none';
+            rarityCol.style.display = 'none';
             cardCol.style.display = 'none';
 
             if (!selectedLanguageCode || selectedLanguageCode === 'Select Language') {
@@ -117,10 +133,13 @@
             setSelect.clear(true);
             setSelect.clearOptions();
             imgSet.style.display = 'none';
+            raritySelect.clear(true);
+            raritySelect.clearOptions();
             cardSelect.clear(true);
             cardSelect.clearOptions();
             imgCard.style.display = 'none';
 
+            rarityCol.style.display = 'none';
             cardCol.style.display = 'none';
 
             if (!selectedLanguageCode) {
@@ -153,6 +172,8 @@
         document.getElementById("set-select").addEventListener("change", async function () {
             selectedSetId = this.value;
 
+            raritySelect.clear(true);
+            raritySelect.clearOptions();
             cardSelect.clear(true);
             cardSelect.clearOptions();
             imgCard.style.display = 'none';
@@ -171,10 +192,21 @@
                     imgSet.style.display = '';
                 }
 
-                await LoadCardSelect();
+                await LoadRaritySelect();
             } catch {
                 imgSet.style.display = 'none';
             }
+        });
+
+
+        document.getElementById("rarity-select").addEventListener("change", async function () {
+            selectedRarity = this.value;
+
+            cardSelect.clear(true);
+            cardSelect.clearOptions();
+            imgCard.style.display = 'none';
+
+            await LoadCardSelect();
         });
 
 
@@ -273,21 +305,53 @@
             }
         }
 
+        async function LoadRaritySelect() {
+            rarityCol.style.display = '';
+
+            try {
+                const res = await fetch(`https://api.tcgdex.net/v2/${selectedLanguageCode}/rarities`);
+                if (!res.ok) throw new Error("Not found");
+
+                const allRarities = await res.json();
+
+                const checks = allRarities.map(async r => {
+                    const probe = await fetch(`https://api.tcgdex.net/v2/${selectedLanguageCode}/cards?set.id=eq:${encodeURIComponent(selectedSetId)}&rarity=eq:${encodeURIComponent(r)}&pagination:itemsPerPage=1`);
+                    if (!probe.ok) return null;
+                    const cards = await probe.json();
+                    return cards.length > 0 ? r : null;
+                });
+
+                const results = await Promise.all(checks);
+                const rarities = results.filter(Boolean).sort();
+
+                raritySelect.clearOptions();
+                raritySelect.refreshOptions(false);
+                raritySelect.addOption({ value: '', text: 'All Rarities' });
+                rarities.forEach(r => raritySelect.addOption({ value: r, text: r }));
+                raritySelect.addItem('', true);
+                selectedRarity = '';
+
+                await LoadCardSelect();
+            } catch {
+                raritySelect.clearOptions();
+                raritySelect.addOption({ value: "0", text: "Rarities not available." });
+                raritySelect.refreshOptions(false);
+            }
+        }
+
         async function LoadCardSelect() {
             cardCol.style.display = '';
 
             try {
-                const res = await fetch(`https://api.tcgdex.net/v2/${selectedLanguageCode}/sets/${selectedSetId}`);
+                const rarityParam = selectedRarity ? `&rarity=eq:${encodeURIComponent(selectedRarity)}` : '';
+                const res = await fetch(`https://api.tcgdex.net/v2/${selectedLanguageCode}/cards?set.id=eq:${encodeURIComponent(selectedSetId)}${rarityParam}`);
                 if (!res.ok) throw new Error("Not found");
 
-                const set = await res.json();
+                const cards = await res.json();
 
                 cardSelect.clearOptions();
                 cardSelect.refreshOptions(false);
-
-                if (set.cards) {
-                    set.cards.forEach(c => cardSelect.addOption({ value: c.localId, text: c.name }));
-                }
+                cards.forEach(c => cardSelect.addOption({ value: c.localId, text: c.name }));
             } catch {
                 cardSelect.clearOptions();
                 cardSelect.addOption({ value: "0", text: "Cards not available." });

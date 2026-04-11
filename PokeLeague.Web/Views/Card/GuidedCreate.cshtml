@@ -8,9 +8,10 @@
 }
 
 <div class="container mt-4">
-
-    <h2>Create Card</h2>
-
+    <div class="d-flex flex-row align-items-center justify-content-between">
+        <h2>Create Card</h2>
+        <a asp-action="Create" class="btn btn-primary">Simple Create</a>
+    </div>
     <hr />
     <div class="d-flex flex-row justify-content-start align-items-start gap-5">
         <form asp-controller="Card" asp-action="Create" class="row g-3 w-100" method="post" enctype="multipart/form-data">
@@ -138,6 +139,21 @@
 {
     <script>
         const API_BASE = 'https://api.tcgdex.net/v2';
+        const CREATE_URL = '@Url.Action("Create", "Card")';
+
+        async function apiFetch(url) {
+            try {
+                const res = await fetch(url);
+                if (!res.ok) {
+                    window.location.href = CREATE_URL;
+                    throw new Error('API request failed');
+                }
+                return res;
+            } catch {
+                window.location.href = CREATE_URL;
+                throw new Error('API request failed');
+            }
+        }
 
         const serieCol = document.getElementById('serie-col');
         const setCol = document.getElementById('set-col');
@@ -240,13 +256,12 @@
             }
 
             try {
-                const res = await fetch(`${API_BASE}/${selectedLanguageCode}/series/${selectedSerieId}`);
-                if (!res.ok) throw new Error();
+                const res = await apiFetch(`${API_BASE}/${selectedLanguageCode}/series/${selectedSerieId}`);
                 const serie = await res.json();
                 showImage(imgSerie, serie.logo, `${serie.name} Logo`);
                 await LoadSetSelect();
             } catch {
-                imgSerie.style.display = 'none';
+                window.location.href = CREATE_URL;
             }
         });
 
@@ -255,13 +270,12 @@
             resetFrom(1);
 
             try {
-                const res = await fetch(`${API_BASE}/${selectedLanguageCode}/sets/${selectedSetId}`);
-                if (!res.ok) throw new Error();
+                const res = await apiFetch(`${API_BASE}/${selectedLanguageCode}/sets/${selectedSetId}`);
                 const set = await res.json();
                 showImage(imgSet, set.logo, `${set.name} Logo`);
                 await LoadRaritySelect();
             } catch {
-                imgSet.style.display = 'none';
+                window.location.href = CREATE_URL;
             }
         });
 
@@ -284,14 +298,13 @@
 
             try {
                 const cardId = `${selectedSetId}-${selectedCardId}`;
-                const fetches = [fetch(`${API_BASE}/${selectedLanguageCode}/cards/${cardId}`)];
+                const fetches = [apiFetch(`${API_BASE}/${selectedLanguageCode}/cards/${cardId}`)];
 
                 if (selectedLanguageCode !== 'en') {
-                    fetches.push(fetch(`${API_BASE}/en/cards/${cardId}`));
+                    fetches.push(apiFetch(`${API_BASE}/en/cards/${cardId}`));
                 }
 
                 const responses = await Promise.all(fetches);
-                if (responses.some(r => !r.ok)) throw new Error();
 
                 const card = await responses[0].json();
                 const enCard = responses.length > 1 ? await responses[1].json() : card;
@@ -308,8 +321,7 @@
                 hiddenRarity.value = enCard.rarity ?? '';
                 cardDetails.style.display = '';
             } catch {
-                imgCard.style.display = 'none';
-                cardDetails.style.display = 'none';
+                window.location.href = CREATE_URL;
             }
         });
 
@@ -339,14 +351,9 @@
 
 
         async function hasCards(url) {
-            try {
-                const res = await fetch(url);
-                if (!res.ok) return true;
-                const cards = await res.json();
-                return cards.length > 0;
-            } catch {
-                return true;
-            }
+            const res = await apiFetch(url);
+            const cards = await res.json();
+            return cards.length > 0;
         }
 
         async function filterByCards(items, urlBuilder) {
@@ -358,28 +365,22 @@
         }
 
         async function serieHasCards(serieId) {
-            try {
-                const res = await fetch(`${API_BASE}/${selectedLanguageCode}/sets?serie=${serieId}`);
-                if (!res.ok) return true;
-                const sets = await res.json();
-                if (sets.length === 0) return false;
+            const res = await apiFetch(`${API_BASE}/${selectedLanguageCode}/sets?serie=${serieId}`);
+            const sets = await res.json();
+            if (sets.length === 0) return false;
 
-                const probes = sets.map(s =>
-                    hasCards(`${API_BASE}/${selectedLanguageCode}/cards?set.id=eq:${encodeURIComponent(s.id)}&pagination:itemsPerPage=1`)
-                        .then(has => has ? Promise.resolve(true) : Promise.reject())
-                );
-                return await Promise.any(probes).catch(() => false);
-            } catch {
-                return true;
-            }
+            const probes = sets.map(s =>
+                hasCards(`${API_BASE}/${selectedLanguageCode}/cards?set.id=eq:${encodeURIComponent(s.id)}&pagination:itemsPerPage=1`)
+                    .then(has => has ? Promise.resolve(true) : Promise.reject())
+            );
+            return await Promise.any(probes).catch(() => false);
         }
 
 
         async function LoadSerieSelect() {
             serieCol.style.display = '';
             try {
-                const res = await fetch(`${API_BASE}/${selectedLanguageCode}/series`);
-                if (!res.ok) throw new Error();
+                const res = await apiFetch(`${API_BASE}/${selectedLanguageCode}/series`);
 
                 const allSeries = await res.json();
                 const checks = allSeries.map(async s => (await serieHasCards(s.id)) ? s : null);
@@ -389,17 +390,14 @@
                 serieSelect.refreshOptions(false);
                 series.forEach(s => serieSelect.addOption({ value: s.id, text: s.name }));
             } catch {
-                serieSelect.clearOptions();
-                serieSelect.addOption({ value: '0', text: 'Series not available.' });
-                serieSelect.refreshOptions(false);
+                window.location.href = CREATE_URL;
             }
         }
 
         async function LoadSetSelect() {
             setCol.style.display = '';
             try {
-                const res = await fetch(`${API_BASE}/${selectedLanguageCode}/sets?serie=${selectedSerieId}`);
-                if (!res.ok) throw new Error();
+                const res = await apiFetch(`${API_BASE}/${selectedLanguageCode}/sets?serie=${selectedSerieId}`);
 
                 const allSets = await res.json();
                 const sets = await filterByCards(allSets, s =>
@@ -410,17 +408,14 @@
                 setSelect.refreshOptions(false);
                 sets.forEach(s => setSelect.addOption({ value: s.id, text: s.name }));
             } catch {
-                setSelect.clearOptions();
-                setSelect.addOption({ value: '0', text: 'Sets not available.' });
-                setSelect.refreshOptions(false);
+                window.location.href = CREATE_URL;
             }
         }
 
         async function LoadRaritySelect() {
             rarityCol.style.display = '';
             try {
-                const res = await fetch(`${API_BASE}/${selectedLanguageCode}/rarities`);
-                if (!res.ok) throw new Error();
+                const res = await apiFetch(`${API_BASE}/${selectedLanguageCode}/rarities`);
 
                 const allRarities = await res.json();
                 const rarities = await filterByCards(allRarities, r =>
@@ -437,9 +432,7 @@
 
                 await LoadCardSelect();
             } catch {
-                raritySelect.clearOptions();
-                raritySelect.addOption({ value: '0', text: 'Rarities not available.' });
-                raritySelect.refreshOptions(false);
+                window.location.href = CREATE_URL;
             }
         }
 
@@ -447,8 +440,7 @@
             cardCol.style.display = '';
             try {
                 const rarityParam = selectedRarity ? `&rarity=eq:${encodeURIComponent(selectedRarity)}` : '';
-                const res = await fetch(`${API_BASE}/${selectedLanguageCode}/cards?set.id=eq:${encodeURIComponent(selectedSetId)}${rarityParam}`);
-                if (!res.ok) throw new Error();
+                const res = await apiFetch(`${API_BASE}/${selectedLanguageCode}/cards?set.id=eq:${encodeURIComponent(selectedSetId)}${rarityParam}`);
 
                 const cards = await res.json();
 
@@ -456,9 +448,7 @@
                 cardSelect.refreshOptions(false);
                 cards.forEach(c => cardSelect.addOption({ value: c.localId, text: c.name }));
             } catch {
-                cardSelect.clearOptions();
-                cardSelect.addOption({ value: '0', text: 'Cards not available.' });
-                cardSelect.refreshOptions(false);
+                window.location.href = CREATE_URL;
             }
         }
     </script>

@@ -55,7 +55,7 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
             var sets = await _context.Set<Set>()
                 .AsNoTracking()
                 .Where(s => s.IsActive)
-                .OrderBy(s => s.Id)
+                .OrderBy(s => s.Name)
                 .ToListAsync();
             return sets!;
         }

@@ -1,0 +1,456 @@
+﻿@model PokeLeague.Application.DTOs.CardDTO
+
+@{
+    ViewData["Title"] = "Create Card";
+    var user = ViewBag.User;
+    var categories = ViewBag.Categories as IEnumerable<dynamic>;
+    var selectedCategories = ViewBag.SelectedCategories as List<int>;
+}
+
+<div class="container mt-4">
+    <div class="d-flex flex-row align-items-center justify-content-between">
+        <h2>Create Card</h2>
+        <a asp-action="Create" class="btn btn-primary">Simple Create</a>
+    </div>
+    <hr />
+    <div class="d-flex flex-row justify-content-start align-items-start gap-5">
+        <form asp-controller="Card" asp-action="Create" class="row g-3 w-100" method="post" enctype="multipart/form-data">
+
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="Name" id="hidden-card-name" />
+            <input type="hidden" asp-for="RarityId" id="hidden-rarity-id" />
+
+            <div class="input-group">
+                <div class="input-group-text"><i class="bi bi-translate"></i></div>
+                <select asp-for="LanguageCode" class="form-select" id="LanguageCode">
+                    <option value="" selected>Select @(Html.DisplayNameFor(model => model.Language))</option>
+                    @foreach (var lang in ViewBag.Languages)
+                    {
+                    <option value="@lang.LanguageCode">@lang.LanguageName</option>
+                    }
+                </select>
+                <span asp-validation-for="LanguageCode" class="text-danger"></span>
+            </div>
+
+            <div class="input-group" id="serie-col" style="display: none;">
+                <div class="input-group-text"><i class="bi bi-boxes"></i></div>
+                <select class="form-select" id="serie-select"></select>
+            </div>
+            <div class="input-group" id="set-col" style="display: none;">
+                <div class="input-group-text"><i class="bi bi-box"></i></div>
+                <select class="form-select" id="set-select" name="SetId"></select>
+                <span asp-validation-for="SetId" class="text-danger"></span>
+            </div>
+            <div class="input-group" id="rarity-col" style="display: none;">
+                <div class="input-group-text"><i class="bi bi-gem"></i></div>
+                <select class="form-select" id="rarity-select"></select>
+                <span asp-validation-for="RarityId" class="text-danger"></span>
+            </div>
+            <div class="input-group" id="card-col" style="display: none;">
+                <div class="input-group-text"><i class="bi bi-card-image"></i></div>
+                <select class="form-select" id="card-select"></select>
+            </div>
+
+            <div id="card-details" style="display: none;">
+
+                <div class="row g-3">
+
+                    <div class="col-12">
+                        <label asp-for="Description" class="form-label"></label>
+                        <textarea asp-for="Description" class="form-control"></textarea>
+                        <span asp-validation-for="Description" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Condition</label>
+                        <select asp-for="IsNew" class="form-select">
+                            <option value="true">New</option>
+                            <option value="false">Used</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Grade" class="form-label"></label>
+                        <input asp-for="Grade" class="form-control" type="number" min="1" max="10" />
+                        <span asp-validation-for="Grade" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Seller</label>
+                        <input class="form-control" value="@user?.Username" readonly />
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label">Categories</label>
+                        <div class="d-flex flex-wrap gap-3">
+                            @if (categories != null)
+                            {
+                                foreach (var cat in categories)
+                                {
+                                    var isChecked = selectedCategories != null && selectedCategories.Contains((int)cat.Id);
+                                    <div class="form-check">
+                                        <input type="checkbox"
+                                               name="selectedCategoryIds"
+                                               value="@cat.Id"
+                                               class="form-check-input"
+                                               checked="@isChecked" />
+                                        <label class="form-check-label">@cat.Name</label>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <p class="text-danger">No categories available</p>
+                            }
+                        </div>
+                        <span data-valmsg-for="selectedCategoryIds" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label">Images</label>
+                        <div id="imageContainer">
+                            <input type="file" id="fileInput" name="files" multiple hidden />
+                            <button type="button" class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                                Select Image
+                            </button>
+                            <span id="fileNames" class="ms-2 text-muted"></span>
+                            <div id="previewContainer" class="d-flex flex-wrap gap-3 mt-3"></div>
+                        </div>
+                        <span data-valmsg-for="files" class="text-danger"></span>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <button type="submit" class="btn btn-success">Create</button>
+            <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+        </form>
+
+        <div id="card-content">
+            <img id="serie-image" class="flex-image" loading="eager" style="display: none;">
+            <img id="set-image" class="flex-image" loading="eager" style="display: none;">
+            <img id="card-image" class="flex-image" loading="eager" style="display: none;">
+        </div>
+    </div>
+</div>
+
+@section Scripts
+{
+    <script>
+        const API_BASE = 'https://api.tcgdex.net/v2';
+        const CREATE_URL = '@Url.Action("Create", "Card")';
+
+        async function apiFetch(url) {
+            try {
+                const res = await fetch(url);
+                if (!res.ok) {
+                    window.location.href = CREATE_URL;
+                    throw new Error('API request failed');
+                }
+                return res;
+            } catch {
+                window.location.href = CREATE_URL;
+                throw new Error('API request failed');
+            }
+        }
+
+        const serieCol = document.getElementById('serie-col');
+        const setCol = document.getElementById('set-col');
+        const rarityCol = document.getElementById('rarity-col');
+        const cardCol = document.getElementById('card-col');
+        const cardDetails = document.getElementById('card-details');
+        const imgSerie = document.getElementById('serie-image');
+        const imgSet = document.getElementById('set-image');
+        const imgCard = document.getElementById('card-image');
+        const hiddenName = document.getElementById('hidden-card-name');
+        const hiddenRarity = document.getElementById('hidden-rarity-id');
+
+        let selectedLanguageCode = '';
+        let selectedSerieId = '';
+        let selectedSetId = '';
+        let selectedRarity = '';
+        let selectedCardId = '';
+
+        const serieSelect = new TomSelect('#serie-select', {
+            placeholder: 'Search Serie...',
+            allowEmptyOption: true,
+            highlight: false,
+        });
+
+        const setSelect = new TomSelect('#set-select', {
+            placeholder: 'Search Set...',
+            allowEmptyOption: true,
+            highlight: false,
+        });
+
+        const raritySelect = new TomSelect('#rarity-select', {
+            placeholder: 'Search Rarity...',
+            allowEmptyOption: true,
+            highlight: false,
+        });
+
+        const cardSelect = new TomSelect('#card-select', {
+            placeholder: 'Search Card...',
+            allowEmptyOption: true,
+            highlight: false,
+        });
+
+        function resetSelect(ts) {
+            ts.clear(true);
+            ts.clearOptions();
+        }
+
+        function resetFrom(level) {
+            const cascade = [
+                { ts: setSelect, col: setCol, img: imgSet },
+                { ts: raritySelect, col: rarityCol, img: null },
+                { ts: cardSelect, col: cardCol, img: imgCard },
+            ];
+
+            for (let i = level; i < cascade.length; i++) {
+                resetSelect(cascade[i].ts);
+                cascade[i].col.style.display = 'none';
+                if (cascade[i].img) cascade[i].img.style.display = 'none';
+            }
+
+            hiddenName.value = '';
+            hiddenRarity.value = '';
+            cardDetails.style.display = 'none';
+        }
+
+        function showImage(img, url, alt) {
+            if (!url) {
+                img.style.display = 'none';
+            } else {
+                img.src = `${url}.png`;
+                img.alt = alt;
+                img.style.display = '';
+            }
+        }
+
+
+        document.getElementById('LanguageCode').addEventListener('change', async function () {
+            selectedLanguageCode = this.value;
+
+            resetSelect(serieSelect);
+            imgSerie.style.display = 'none';
+            serieCol.style.display = 'none';
+            resetFrom(0);
+
+            if (!selectedLanguageCode) return;
+
+            const placeholderOption = this.querySelector('option[value=""]');
+            if (placeholderOption) placeholderOption.remove();
+
+            await LoadSerieSelect();
+        });
+
+        document.getElementById('serie-select').addEventListener('change', async function () {
+            selectedSerieId = this.value;
+            resetFrom(0);
+
+            if (!selectedLanguageCode) {
+                serieCol.style.display = 'none';
+                return;
+            }
+
+            try {
+                const res = await apiFetch(`${API_BASE}/${selectedLanguageCode}/series/${selectedSerieId}`);
+                const serie = await res.json();
+                showImage(imgSerie, serie.logo, `${serie.name} Logo`);
+                await LoadSetSelect();
+            } catch {
+                window.location.href = CREATE_URL;
+            }
+        });
+
+        document.getElementById('set-select').addEventListener('change', async function () {
+            selectedSetId = this.value;
+            resetFrom(1);
+
+            try {
+                const res = await apiFetch(`${API_BASE}/${selectedLanguageCode}/sets/${selectedSetId}`);
+                const set = await res.json();
+                showImage(imgSet, set.logo, `${set.name} Logo`);
+                await LoadRaritySelect();
+            } catch {
+                window.location.href = CREATE_URL;
+            }
+        });
+
+        document.getElementById('rarity-select').addEventListener('change', async function () {
+            selectedRarity = this.value;
+            resetFrom(2);
+            await LoadCardSelect();
+        });
+
+        document.getElementById('card-select').addEventListener('change', async function () {
+            selectedCardId = this.value;
+
+            if (!selectedCardId) {
+                imgCard.style.display = 'none';
+                hiddenName.value = '';
+                hiddenRarity.value = '';
+                cardDetails.style.display = 'none';
+                return;
+            }
+
+            try {
+                const cardId = `${selectedSetId}-${selectedCardId}`;
+                const fetches = [apiFetch(`${API_BASE}/${selectedLanguageCode}/cards/${cardId}`)];
+
+                if (selectedLanguageCode !== 'en') {
+                    fetches.push(apiFetch(`${API_BASE}/en/cards/${cardId}`));
+                }
+
+                const responses = await Promise.all(fetches);
+
+                const card = await responses[0].json();
+                const enCard = responses.length > 1 ? await responses[1].json() : card;
+
+                if (card.image) {
+                    imgCard.src = `${card.image}/high.png`;
+                    imgCard.alt = card.name;
+                    imgCard.style.display = '';
+                } else {
+                    imgCard.style.display = 'none';
+                }
+
+                hiddenName.value = card.name ?? '';
+                hiddenRarity.value = enCard.rarity ?? '';
+                cardDetails.style.display = '';
+            } catch {
+                window.location.href = CREATE_URL;
+            }
+        });
+
+        document.getElementById('fileInput').addEventListener('change', function () {
+            const preview = document.getElementById('previewContainer');
+            const fileNames = document.getElementById('fileNames');
+            preview.innerHTML = '';
+
+            const files = Array.from(this.files);
+            fileNames.textContent = files.map(f => f.name).join(', ');
+
+            files.forEach(file => {
+                if (!file.type.startsWith('image/')) return;
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.style.width = '120px';
+                    img.style.height = '120px';
+                    img.style.objectFit = 'cover';
+                    img.className = 'rounded shadow';
+                    preview.appendChild(img);
+                };
+                reader.readAsDataURL(file);
+            });
+        });
+
+
+        async function hasCards(url) {
+            const res = await apiFetch(url);
+            const cards = await res.json();
+            return cards.length > 0;
+        }
+
+        async function filterByCards(items, urlBuilder) {
+            const checks = items.map(async item => {
+                const has = await hasCards(urlBuilder(item));
+                return has ? item : null;
+            });
+            return (await Promise.all(checks)).filter(Boolean);
+        }
+
+        async function serieHasCards(serieId) {
+            const res = await apiFetch(`${API_BASE}/${selectedLanguageCode}/sets?serie=${serieId}`);
+            const sets = await res.json();
+            if (sets.length === 0) return false;
+
+            const probes = sets.map(s =>
+                hasCards(`${API_BASE}/${selectedLanguageCode}/cards?set.id=eq:${encodeURIComponent(s.id)}&pagination:itemsPerPage=1`)
+                    .then(has => has ? Promise.resolve(true) : Promise.reject())
+            );
+            return await Promise.any(probes).catch(() => false);
+        }
+
+
+        async function LoadSerieSelect() {
+            serieCol.style.display = '';
+            try {
+                const res = await apiFetch(`${API_BASE}/${selectedLanguageCode}/series`);
+
+                const allSeries = await res.json();
+                const checks = allSeries.map(async s => (await serieHasCards(s.id)) ? s : null);
+                const series = (await Promise.all(checks)).filter(Boolean);
+
+                serieSelect.clearOptions();
+                serieSelect.refreshOptions(false);
+                series.forEach(s => serieSelect.addOption({ value: s.id, text: s.name }));
+            } catch {
+                window.location.href = CREATE_URL;
+            }
+        }
+
+        async function LoadSetSelect() {
+            setCol.style.display = '';
+            try {
+                const res = await apiFetch(`${API_BASE}/${selectedLanguageCode}/sets?serie=${selectedSerieId}`);
+
+                const allSets = await res.json();
+                const sets = await filterByCards(allSets, s =>
+                    `${API_BASE}/${selectedLanguageCode}/cards?set.id=eq:${encodeURIComponent(s.id)}&pagination:itemsPerPage=1`
+                );
+
+                setSelect.clearOptions();
+                setSelect.refreshOptions(false);
+                sets.forEach(s => setSelect.addOption({ value: s.id, text: s.name }));
+            } catch {
+                window.location.href = CREATE_URL;
+            }
+        }
+
+        async function LoadRaritySelect() {
+            rarityCol.style.display = '';
+            try {
+                const res = await apiFetch(`${API_BASE}/${selectedLanguageCode}/rarities`);
+
+                const allRarities = await res.json();
+                const rarities = await filterByCards(allRarities, r =>
+                    `${API_BASE}/${selectedLanguageCode}/cards?set.id=eq:${encodeURIComponent(selectedSetId)}&rarity=eq:${encodeURIComponent(r)}&pagination:itemsPerPage=1`
+                );
+                rarities.sort();
+
+                raritySelect.clearOptions();
+                raritySelect.refreshOptions(false);
+                raritySelect.addOption({ value: '', text: 'All Rarities' });
+                rarities.forEach(r => raritySelect.addOption({ value: r, text: r }));
+                raritySelect.addItem('', true);
+                selectedRarity = '';
+
+                await LoadCardSelect();
+            } catch {
+                window.location.href = CREATE_URL;
+            }
+        }
+
+        async function LoadCardSelect() {
+            cardCol.style.display = '';
+            try {
+                const rarityParam = selectedRarity ? `&rarity=eq:${encodeURIComponent(selectedRarity)}` : '';
+                const res = await apiFetch(`${API_BASE}/${selectedLanguageCode}/cards?set.id=eq:${encodeURIComponent(selectedSetId)}${rarityParam}`);
+
+                const cards = await res.json();
+
+                cardSelect.clearOptions();
+                cardSelect.refreshOptions(false);
+                cards.forEach(c => cardSelect.addOption({ value: c.localId, text: c.name }));
+            } catch {
+                window.location.href = CREATE_URL;
+            }
+        }
+    </script>
+}
+

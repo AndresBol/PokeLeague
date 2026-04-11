@@ -32,7 +32,12 @@ namespace PokeLeague.Web.Controllers
             return View(cards);
         }
 
-        public async Task <IActionResult> Create()
+        public async Task<IActionResult> Create()
+        {
+            await LoadCombosAsync();
+            return View();
+        }
+        public async Task<IActionResult> GuidedCreate()
         {
             await LoadCombosAsync();
             return View();
@@ -118,12 +123,12 @@ namespace PokeLeague.Web.Controllers
 
             if (selectedCategoryIds == null || selectedCategoryIds.Count == 0)
             {
-                ModelState.AddModelError("", "At least one category is required.");
+                ModelState.AddModelError("selectedCategoryIds", "At least one category is required.");
             }
 
             if (files == null || files.Count == 0)
             {
-                ModelState.AddModelError("", "At least one image is required.");
+                ModelState.AddModelError("files", "At least one image is required.");
             }
 
             if (string.IsNullOrEmpty(cardDTO.SetId)) 
@@ -216,7 +221,7 @@ namespace PokeLeague.Web.Controllers
             );
 
             return RedirectToAction(nameof(Index));
-         }
+        }
 
         [HttpPost]
         [ValidateAntiForgeryToken]

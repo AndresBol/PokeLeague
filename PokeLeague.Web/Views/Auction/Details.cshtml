@@ -96,6 +96,24 @@
                 </span>
             </dd>
 
+            <div class="mt-4 p-3 border rounded bg-light" style="max-width: 350px;">
+
+                <label for="bidAmount" class="form-label fw-bold">
+                    Place your bid
+                </label>
+
+                <div class="input-group">
+                    <span class="input-group-text">$</span>
+                    <input type="number" id="bidAmount" class="form-control" placeholder="Enter amount" />
+                </div>
+
+                <button id="btnBid"  class="btn btn-primary w-100 mt-3">
+                    <i class="bi bi-cash-coin me-2"></i>
+                    Place Bid
+                </button>
+
+            </div>
+
             <div class="mt-4">
                 <a asp-action="Bids"
                    asp-route-id="@Model.Id"
@@ -103,6 +121,7 @@
                     View Bid History
                 </a>
             </div>
+
 
             </dl>
 
@@ -162,5 +181,63 @@
                 }
             });
         }
+     
+        document.getElementById("btnBid").addEventListener("click", async ()=> {
+
+            const amount = document.getElementById("bidAmount").value;
+
+            if(!amount || amount <= 0){
+                Swal.fire({
+                    icon:'warning',
+                    title: 'Invalid amount',
+                    text: 'Please enter a valid bid.'
+                });
+                return;
+            }
+
+            const auctionId = @(Model.Id);
+            const data ={
+                auctionId:auctionId,
+                userId:2,
+                BidAmount: parseFloat(amount)
+            };
+
+            try
+            {
+                const response = await fetch('/Auction/CreateBid',{
+                    method: 'POST',
+                    headers:{
+                        'Content-Type': 'application/json'
+                    },
+                    body:JSON.stringify(data)
+                });
+
+                if(response.ok){
+                Swal.fire({
+                   icon:'success',
+                   title:'Bid placed!',
+                   text:'Your bid was successful.'
+                
+                }).then(() =>{
+                    location.reload();
+                });
+
+                } else{
+                 Swal.fire({
+                   icon:'error',
+                   title:'Error',
+                   text:'Could not place bid.'
+                });
+                }
+                
+            }catch(error){
+                Swal.fire({
+                   icon:'error',
+                   title:'Connection error',
+                   text:'Something went wrong.'
+                });
+            }
+        });
+    
     </script>
 }

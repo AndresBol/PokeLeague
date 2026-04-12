@@ -12,12 +12,15 @@ namespace PokeLeague.Web.Controllers
     public class AuctionController : Controller
     {
         private readonly IServiceAuction _serviceAuction;
+        private readonly IServiceAuctionBid _serviceAuctionBid;
         private readonly IServiceUser _serviceUser;
 
-        public AuctionController(IServiceAuction serviceAuction, IServiceUser serviceUser)
+        public AuctionController(IServiceAuction serviceAuction, IServiceUser serviceUser, IServiceRole serviceRole, IServiceAuctionBid serviceAuctionBid)
         {
             _serviceAuction = serviceAuction;
             _serviceUser = serviceUser;
+            _serviceRole = serviceRole;
+            _serviceAuctionBid = serviceAuctionBid;
         }
 
         public async Task<IActionResult> Index()
@@ -273,6 +276,20 @@ namespace PokeLeague.Web.Controllers
                 SweetAlertMessageType.success
             );
             return RedirectToAction(nameof(Details), new { id });
+        }
+        [HttpPost]
+        public async Task<IActionResult> CreateBid([FromBody] AuctionBidDTO auctionBidDTO)
+        {
+            try
+            {
+                var id = await _serviceAuctionBid.AddAsync(auctionBidDTO);
+
+                return Json(new { success = true, id });
+            }
+            catch (Exception ex) 
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
         }
     }
 }

@@ -14,20 +14,42 @@ namespace PokeLeague.Application.Services.Implementations
     public class ServiceAuctionBid : IServiceAuctionBid
     {
         private readonly IRepositoryAuctionBid _repository;
+        private readonly IRepositoryAuction _auctionRepository;
         private readonly IMapper _mapper;
 
-        public ServiceAuctionBid(IRepositoryAuctionBid repository, IMapper mapper)
+        public ServiceAuctionBid(IRepositoryAuctionBid repository,IRepositoryAuction auctionRepository, IMapper mapper)
         {
             _repository = repository;
+            _auctionRepository = auctionRepository;
             _mapper = mapper;
         }
 
-        public async Task<int> AddAsync(AuctionBidDTO auctionBidDto)
-        {
-            var auctionBid = _mapper.Map<AuctionBid>(auctionBidDto);
-            var id = await _repository.AddAsync(auctionBid);
+        //public async Task<int> AddAsync(AuctionBidDTO auctionBidDto)
+        //{
+           
+        //    var auctionBid = _mapper.Map<AuctionBid>(auctionBidDto);
+        //    var id = await _repository.AddAsync(auctionBid);
 
-            return id;
+        //    return id;
+        //}
+
+        public async Task<int> AddAsync(AuctionBidDTO auctionBidDTO) 
+        {
+            var auction = await _auctionRepository.GetAuctionWithBids(auctionBidDTO.AuctionId);
+
+            if (auction == null)
+                throw new Exception("Auction no founded");
+
+            decimal maxBid = auction.AuctionBid.Any()
+                ? auction.AuctionBid.Max(b => b.BidAmount)
+                : auction.BasePrice;
+            if (auctionBidDTO.BidAmount <= maxBid)
+                throw new Exception("The bid should be higher");
+
+            var bid = _mapper.Map<AuctionBid>(auctionBidDTO);
+            bid.BidDate = DateTime.Now;
+
+            return await _repository.AddAsync(bid);
         }
 
         public async Task<AuctionBidDTO> FindByIdAsync(int id)
@@ -57,5 +79,7 @@ namespace PokeLeague.Application.Services.Implementations
         {
             await _repository.DeleteAsync(id);
         }
+
+        
     }
 }

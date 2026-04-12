@@ -14,5 +14,7 @@ namespace PokeLeague.Application.Services.Interfaces
         Task<int> AddAsync(AuctionBidDTO auctionBidDto);
         Task UpdateAsync(AuctionBidDTO auctionBidDto);
         Task DeleteAsync(int id);
+
+       
     }
 }

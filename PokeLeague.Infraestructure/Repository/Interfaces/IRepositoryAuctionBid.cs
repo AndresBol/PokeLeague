@@ -14,5 +14,7 @@ namespace PokeLeague.Infraestructure.Repository.Interfaces
         Task<int> AddAsync(AuctionBid auctionBid);
         Task UpdateAsync(AuctionBid auctionBid);
         Task DeleteAsync(int id);
+
+       
     }
 }

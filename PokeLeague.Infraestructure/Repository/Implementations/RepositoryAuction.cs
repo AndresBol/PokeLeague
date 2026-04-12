@@ -161,5 +161,14 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
                 }
             });
         }
+
+        public async Task<Auction?> GetAuctionWithBids(int id) 
+        {
+            return await _context.Set<Auction>()
+                .Include(a => a.AuctionBid)
+                .ThenInclude(ab => ab.User)
+                .Include(a => a.User)
+                .FirstOrDefaultAsync(a => a.Id == id && a.IsActive);
+        }
     }
 }

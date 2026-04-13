@@ -12,13 +12,7 @@
         <form asp-action="Create" method="post">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <div class="form-group">
-                <label asp-for="UserId" class="form-label"></label>
-                <select disabled asp-for="UserId"
-                        class="form-select"
-                        asp-items="@(new SelectList(ViewBag.ListUser, "Id", "Username"))">
-                </select>
-                <input type="hidden" asp-for="UserId" />
-                <span asp-validation-for="UserId" class="text-danger"></span>
+                <label class="form-label">Seller: <strong>@ViewBag.LoggedUser?.Username</strong></label>
             </div>
             <div class="form-group">
                 <label asp-for="CardId" class="control-label"></label>
@@ -74,16 +68,14 @@
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
 
     <script>
-        const userSelect = document.getElementById("UserId");
         const cardSelect = document.getElementById("CardId");
         const endDateError = document.getElementById("endDateError");
 
-        async function refreshCardSelect(userId) {
+        async function refreshCardSelect() {
             cardSelect.innerHTML = '';
             clearCardError();
-            if (!userId) return;
 
-            const response = await fetch(`@Url.Action("GetCardsByUser")?userId=${userId}`);
+            const response = await fetch(`@Url.Action("GetCardsByUser")`);
             const cards = await response.json();
 
             for (const card of cards) {
@@ -117,14 +109,9 @@
             return true;
         }
 
-        userSelect.addEventListener("change", () => refreshCardSelect(userSelect.value));
         cardSelect.addEventListener("change", () => validateCardActiveAuction(cardSelect.value));
 
-        //TODO: Replace this once signIn is implemented
-        const userId = 8;
-        userSelect.value = userId;
-        document.querySelector('input[type="hidden"][name="UserId"]').value = userId;
-        refreshCardSelect(userId);
+        refreshCardSelect();
 
         function syncDateTime(prefix) {
             const date = document.getElementById(`${prefix}Date`).value;

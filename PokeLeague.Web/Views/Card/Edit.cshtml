@@ -2,7 +2,6 @@
 
 @{
     ViewData["Title"] = "Edit";
-    var user = ViewBag.User;
 }
 
 <div class="container mt-4">
@@ -91,7 +90,7 @@
 
             <div class="mb-3 col-md-6">
                 <label class="form-label">Seller</label>
-                <input class="form-control" value="@user?.Username" readonly />
+                <input class="form-control" value="@ViewBag.Username" readonly />
             </div>
 
            

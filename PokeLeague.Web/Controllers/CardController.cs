@@ -5,6 +5,7 @@ using PokeLeague.Application.Services.Interfaces;
 using PokeLeague.Web.Util;
 using System.Collections.Generic;
 using System.Reflection.Metadata.Ecma335;
+using System.Security.Claims;
 
 namespace PokeLeague.Web.Controllers
 {
@@ -13,16 +14,14 @@ namespace PokeLeague.Web.Controllers
     {
         private readonly IServiceCard _serviceCard;
         private readonly IServiceCategory _serviceCategory;
-        private readonly IServiceUser _serviceUser;
         private readonly IServiceLanguage _serviceLanguage;
         private readonly IServiceRarity _serviceRarity;
         private readonly IServiceSet _serviceSet;
 
-        public CardController(IServiceCard serviceCard, IServiceCategory serviceCategory, IServiceUser serviceUser, IServiceLanguage serviceLanguage, IServiceRarity serviceRarity, IServiceSet serviceSet)
+        public CardController(IServiceCard serviceCard, IServiceCategory serviceCategory, IServiceLanguage serviceLanguage, IServiceRarity serviceRarity, IServiceSet serviceSet)
         {
             _serviceCard = serviceCard;
             _serviceCategory = serviceCategory;
-            _serviceUser = serviceUser;
             _serviceLanguage = serviceLanguage;
             _serviceRarity = serviceRarity;
             _serviceSet = serviceSet;
@@ -50,8 +49,7 @@ namespace PokeLeague.Web.Controllers
 
             ViewBag.Categories = cats;
 
-            var users = await _serviceUser.ListAsync();
-            ViewBag.User = users.FirstOrDefault();
+            ViewBag.Username = User.Identity?.Name;
 
             ViewBag.Languages = await _serviceLanguage.ListAsync();
 
@@ -168,14 +166,8 @@ namespace PokeLeague.Web.Controllers
             cardDTO.IsActive = true;
             cardDTO.RegistrationDate = DateOnly.FromDateTime(DateTime.Now);
 
-
-            var users = await _serviceUser.ListAsync();
-            var currentUser = users.FirstOrDefault();
-            if (currentUser == null)
-            {
-                throw new Exception("No users found in database");
-            }
-            cardDTO.UserId = currentUser.Id;
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            cardDTO.UserId = int.Parse(userIdClaim!);
 
 
             List<CategoryCardDTO> categories = [];

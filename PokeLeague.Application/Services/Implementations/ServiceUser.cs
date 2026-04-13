@@ -1,6 +1,9 @@
 ﻿using AutoMapper;
+using Microsoft.Extensions.Options;
+using PokeLeague.Application.Config;
 using PokeLeague.Application.DTOs;
 using PokeLeague.Application.Services.Interfaces;
+using PokeLeague.Application.Utils;
 using PokeLeague.Infraestructure.Models;
 using PokeLeague.Infraestructure.Repository.Interfaces;
 using System;
@@ -15,11 +18,13 @@ namespace PokeLeague.Application.Services.Implementations
     {
         private readonly IRepositoryUser _repository;
         private readonly IMapper _mapper;
+        private readonly IOptions<AppConfig> _options;
 
-        public ServiceUser(IRepositoryUser repository, IMapper mapper)
+        public ServiceUser(IRepositoryUser repository, IMapper mapper, IOptions<AppConfig> options)
         {
             _repository = repository;
             _mapper = mapper;
+            _options = options;
         }
 
         public async Task<int> AddAsync(UserDTO userDto)
@@ -75,6 +80,23 @@ namespace PokeLeague.Application.Services.Implementations
             
             await _repository.ToggleBlockAsync(id);
         
+        }
+
+        public async Task<UserDTO> LoginAsync(string email, string password)
+        {
+            UserDTO userDTO = null!;
+
+            string secret = _options.Value.Crypto.Secret;
+            string passwordEncrypted = Cryptography.Encrypt(password, secret);
+
+            var user = await _repository.LoginAsync(email, passwordEncrypted);
+
+            if (user != null)
+            {
+                userDTO = _mapper.Map<UserDTO>(user);
+            }
+
+            return userDTO;
         }
     }
 }

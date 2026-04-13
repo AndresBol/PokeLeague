@@ -210,5 +210,15 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
                 throw new Exception($"Error toggling block: {ex.Message}");
             }
         }
+
+        public async Task<User> LoginAsync(string email, string passwordHash)
+        {
+            var user = await _context.Set<User>()
+                .Include(u => u.Role)
+                .Where(u => u.Email == email && u.PasswordHash == passwordHash && u.IsActive && !u.IsBlocked)
+                .FirstOrDefaultAsync();
+
+            return user!;
+        }
     }
 }

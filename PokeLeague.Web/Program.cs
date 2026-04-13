@@ -1,4 +1,7 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using PokeLeague.Application.Config;
 using PokeLeague.Application.Profiles;
 using PokeLeague.Application.Services.Implementations;
 using PokeLeague.Application.Services.Interfaces;
@@ -8,8 +11,23 @@ using PokeLeague.Infraestructure.Repository.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Map AppConfig from appsettings.json
+builder.Services.Configure<AppConfig>(builder.Configuration);
+
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+
+// Cache in memory (required for Session)
+builder.Services.AddDistributedMemoryCache();
+
+// Register Session
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+    options.Cookie.Name = ".PokeLeague.Session";
+});
 
 //************
 // =====================
@@ -62,6 +80,25 @@ builder.Services.AddAutoMapper(config =>
     config.AddProfile<SetProfile>();
 });
 
+// Configure Cookie Authentication
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Login/Index";
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(20);
+        options.AccessDeniedPath = "/Login/Forbidden";
+    });
+
+builder.Services.AddControllersWithViews(options =>
+{
+    options.Filters.Add(
+        new ResponseCacheAttribute
+        {
+            NoStore = true,
+            Location = ResponseCacheLocation.None,
+        });
+});
+
 // ==============================
 // Configurar SQL Server DbContext
 // ==============================
@@ -69,7 +106,7 @@ var connectionString = builder.Configuration.GetConnectionString("SqlServerDataB
 if (string.IsNullOrWhiteSpace(connectionString))
 {
     throw new InvalidOperationException(
-        "No se encontró la cadena de conexión 'SqlServerDataBase' en appsettings.json / appsettings.Development.json.");
+        "No se encontro la cadena de conexion 'SqlServerDataBase' en appsettings.json / appsettings.Development.json.");
 }
 
 builder.Services.AddDbContext<PokeLeagueContext>(options =>
@@ -98,8 +135,12 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseStaticFiles();
 app.UseRouting();
 
+app.UseSession();
+
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapStaticAssets();

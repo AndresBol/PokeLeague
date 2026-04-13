@@ -36,6 +36,7 @@ This project was developed as the final assignment for the Programming VI course
 - **Competitive bidding**: Place bids on active auctions with real-time validation against minimum increase thresholds
 - **Purchase order generation**: Automatic purchase record creation when auctions close
 - **User management**: View, edit, and block/unblock user accounts
+- **Cookie-based authentication**: Secure login with ASP.NET Cookie Authentication, claims-based identity, AES-encrypted passwords, role-based authorization, and session management
 - **Category tagging**: Assign multiple categories to cards via a many-to-many relationship
 - **Smart form validation**: Server-side and client-side validation with SweetAlert2 notifications
 - **Soft-delete pattern**: All entities support logical activation/deactivation (`is_active` flag)
@@ -43,17 +44,18 @@ This project was developed as the final assignment for the Programming VI course
 
 ## Tech Stack
 
-| Layer         | Technology                           |
-| ------------- | ------------------------------------ |
-| Language      | C# (.NET 9.0)                        |
-| Web Framework | ASP.NET Core MVC                     |
-| Database      | Microsoft SQL Server 2022            |
-| ORM           | Entity Framework Core 9.x            |
-| Mapping       | AutoMapper 16.0.0                    |
-| Frontend      | Bootstrap 5, Bootstrap Icons, jQuery |
-| Dropdowns     | Tom-Select 2.4.3                     |
-| Notifications | SweetAlert2                          |
-| IDE           | Visual Studio                        |
+| Layer         | Technology                                    |
+| ------------- | --------------------------------------------- |
+| Language      | C# (.NET 9.0)                                 |
+| Web Framework | ASP.NET Core MVC                              |
+| Database      | Microsoft SQL Server 2022                     |
+| ORM           | Entity Framework Core 9.x                     |
+| Mapping       | AutoMapper 16.0.0                             |
+| Frontend      | Bootstrap 5, Bootstrap Icons, jQuery          |
+| Dropdowns     | Tom-Select 2.4.3                              |
+| Notifications | SweetAlert2                                   |
+| Auth          | ASP.NET Cookie Authentication, AES encryption |
+| IDE           | Visual Studio                                 |
 
 ## Architecture
 
@@ -62,12 +64,14 @@ The project follows a three-tier layered architecture with clear separation of c
 ```
 PokeLeague/
 ├── PokeLeague.Web/                    # Presentation Layer
-│   ├── Controllers/                   #   MVC Controllers (Home, User, Card, Auction)
+│   ├── Controllers/                   #   MVC Controllers (Home, User, Card, Auction, Login)
+│   ├── ViewModels/                    #   Login view model with validation
 │   ├── Views/                         #   Razor views organized by feature
 │   │   ├── Home/                      #     Landing page
 │   │   ├── Card/                      #     Card CRUD + guided creation wizard
 │   │   ├── Auction/                   #     Auction CRUD + bid management
 │   │   ├── User/                      #     User profiles & management
+│   │   ├── Login/                     #     Login form & access denied page
 │   │   └── Shared/                    #     Layout, partials, error page
 │   ├── Util/                          #   SweetAlert2 notification helper
 │   ├── wwwroot/                       #   Static assets (CSS, JS, media, libraries)
@@ -78,7 +82,9 @@ PokeLeague/
 │   │   ├── Interfaces/               #   Service contracts (IServiceCard, IServiceAuction, etc.)
 │   │   └── Implementations/          #   Business rules, validation, orchestration
 │   ├── DTOs/                         #   Data Transfer Objects (12 record types)
-│   └── Profiles/                     #   AutoMapper entity ↔ DTO profiles (12 profiles)
+│   ├── Profiles/                     #   AutoMapper entity ↔ DTO profiles (12 profiles)
+│   ├── Config/                       #   AppConfig for crypto secret binding
+│   └── Utils/                        #   AES password encryption utility
 │
 ├── PokeLeague.Infraestructure/       # Data Access Layer
 │   ├── Data/
@@ -93,13 +99,14 @@ PokeLeague/
 
 **Design Patterns:**
 
-| Pattern                  | Implementation                                                                                     |
-| ------------------------ | -------------------------------------------------------------------------------------------------- |
-| **Repository**           | Generic CRUD repositories per entity with EF Core, eager loading, and `AsNoTracking` for reads     |
-| **Service Layer**        | Business logic encapsulated in services with validation and auction status resolution              |
-| **DTO / AutoMapper**     | 12 DTO records with display annotations, mapped via AutoMapper profiles for clean layer boundaries |
-| **Dependency Injection** | All repositories and services registered as Transient in `Program.cs`                              |
-| **Soft Delete**          | `is_active` flag on all entities for logical deletion without data loss                            |
+| Pattern                   | Implementation                                                                                               |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| **Repository**            | Generic CRUD repositories per entity with EF Core, eager loading, and `AsNoTracking` for reads               |
+| **Service Layer**         | Business logic encapsulated in services with validation and auction status resolution                        |
+| **DTO / AutoMapper**      | 12 DTO records with display annotations, mapped via AutoMapper profiles for clean layer boundaries           |
+| **Dependency Injection**  | All repositories and services registered as Transient in `Program.cs`                                        |
+| **Cookie Authentication** | Claims-based identity with cookie auth, role-based `[Authorize]` attributes, and AES-CBC password encryption |
+| **Soft Delete**           | `is_active` flag on all entities for logical deletion without data loss                                      |
 
 ## RESTful API Integration - Guided Card Creation
 
@@ -137,7 +144,7 @@ Language -> Series -> Set -> Rarity -> Card -> Details + Image Preview
 The project also exposes **internal JSON endpoints** for AJAX-driven features in the auction module:
 
 ```csharp
-[HttpGet] GetCardsByUser(int userId)    // Returns user's cards as JSON for auction creation
+[HttpGet] GetCardsByUser()              // Returns logged-in user's cards as JSON for auction creation
 [HttpGet] HasActiveAuction(int cardId)  // Checks if a card already has an active auction
 ```
 

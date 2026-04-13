@@ -1,22 +1,23 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using PokeLeague.Application.DTOs;
 using PokeLeague.Application.Services.Interfaces;
 using PokeLeague.Web.Util;
+using System.Security.Claims;
 
 namespace PokeLeague.Web.Controllers
 {
+    [Authorize]
     public class AuctionController : Controller
     {
         private readonly IServiceAuction _serviceAuction;
         private readonly IServiceUser _serviceUser;
-        private readonly IServiceRole _serviceRole;
 
-        public AuctionController(IServiceAuction serviceAuction, IServiceUser serviceUser, IServiceRole serviceRole)
+        public AuctionController(IServiceAuction serviceAuction, IServiceUser serviceUser)
         {
             _serviceAuction = serviceAuction;
             _serviceUser = serviceUser;
-            _serviceRole = serviceRole;
         }
 
         public async Task<IActionResult> Index()
@@ -94,6 +95,10 @@ namespace PokeLeague.Web.Controllers
             }
 
             auctionDto.IsActive = true;
+
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            auctionDto.UserId = int.Parse(userIdClaim!);
+
             await _serviceAuction.AddAsync(auctionDto);
             TempData["Notification"] = SweetAlertHelper.CreateNotification(
                 "Auction created",
@@ -152,13 +157,18 @@ namespace PokeLeague.Web.Controllers
 
         private async Task LoadCombosAsync(IEnumerable<string>? selectedCategoriaIds = null)
         {
-            var roleDto = await _serviceRole.FindByNameAsync("Seller");
-            ViewBag.ListUser = await _serviceUser.ListByRoleAsync(roleDto);
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userId = int.Parse(userIdClaim!);
+            var user = await _serviceUser.FindByIdAsync(userId);
+            ViewBag.LoggedUser = user;
+            ViewBag.LoggedUserCards = user?.Card?.Select(c => new { c.Id, c.Name }) ?? [];
         }
 
         [HttpGet]
-        public async Task<JsonResult> GetCardsByUser(int userId)
+        public async Task<JsonResult> GetCardsByUser()
         {
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userId = int.Parse(userIdClaim!);
             var user = await _serviceUser.FindByIdAsync(userId);
             var cards = user?.Card?.Select(c => new { c.Id, c.Name }) ?? [];
             return Json(cards);

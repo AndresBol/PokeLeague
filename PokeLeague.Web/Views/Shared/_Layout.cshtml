@@ -29,7 +29,7 @@
                     <span class="navbar-toggler-icon"></span>
                 </button>
             </div>
-            <div class="navbar-collapse collapse d-md-inline-flex justify-content-between flex-grow-0">
+            <div class="navbar-collapse collapse d-md-inline-flex justify-content-between flex-grow-1">
                 <ul class="navbar-nav flex-grow-1 gap-2 h5">
                     <li class="nav-item">
                         <a class="nav-link @(IsSelectedAction("User", "Index") ? "border-bottom border-warning border-2 text-dark" : "")" asp-area="" asp-controller="user" asp-action="Index"><i class="bi bi-people-fill me-1"></i> Users</a>
@@ -40,6 +40,23 @@
                     <li class="nav-item">
                         <a class="nav-link @(IsSelectedAction("Auction", "Index") ? "border-bottom border-warning border-2 text-dark" : "")" asp-area="" asp-controller="Auction" asp-action="Index"><i class="bi bi-briefcase-fill me-1"></i> Auctions</a>
                     </li>
+                </ul>
+                <ul class="navbar-nav ms-auto gap-2 align-items-center">
+                    @if (User.Identity != null && User.Identity.IsAuthenticated)
+                    {
+                        <li class="nav-item">
+                            <span class="nav-link disabled text-dark"><i class="bi bi-person-fill me-1"></i>@User.Identity.Name</span>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-danger" asp-controller="Login" asp-action="LogOff"><i class="bi bi-box-arrow-right me-1"></i> Log Out</a>
+                        </li>
+                    }
+                    else
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Login" asp-action="Index"><i class="bi bi-box-arrow-in-right me-1"></i> Login</a>
+                        </li>
+                    }
                 </ul>
             </div>
         </nav>

@@ -17,5 +17,6 @@ namespace PokeLeague.Infraestructure.Repository.Interfaces
         Task DeleteAsync(int id);
         Task UpdateProfileAsync(int id, string username, string email);
         Task ToggleBlockAsync(int id);
+        Task<User> LoginAsync(string email, string passwordHash);
     }
 }

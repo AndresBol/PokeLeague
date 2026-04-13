@@ -1,9 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using PokeLeague.Application.DTOs;
 using PokeLeague.Application.Services.Interfaces;
 
 namespace PokeLeague.Web.Controllers
 {
+    [Authorize]
     public class UserController : Controller
     {
         private readonly IServiceUser _serviceUser;

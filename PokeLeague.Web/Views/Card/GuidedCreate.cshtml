@@ -2,7 +2,6 @@
 
 @{
     ViewData["Title"] = "Create Card";
-    var user = ViewBag.User;
     var categories = ViewBag.Categories as IEnumerable<dynamic>;
     var selectedCategories = ViewBag.SelectedCategories as List<int>;
 }
@@ -73,11 +72,6 @@
                         <label asp-for="Grade" class="form-label"></label>
                         <input asp-for="Grade" class="form-control" type="number" min="1" max="10" />
                         <span asp-validation-for="Grade" class="text-danger"></span>
-                    </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label">Seller</label>
-                        <input class="form-control" value="@user?.Username" readonly />
                     </div>
 
                     <div class="col-12">

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using PokeLeague.Application.DTOs;
 using PokeLeague.Application.Services.Interfaces;
@@ -6,6 +7,7 @@ using PokeLeague.Web.Util;
 
 namespace PokeLeague.Web.Controllers
 {
+    [Authorize]
     public class AuctionController : Controller
     {
         private readonly IServiceAuction _serviceAuction;

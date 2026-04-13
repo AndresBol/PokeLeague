@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using PokeLeague.Application.DTOs;
 using PokeLeague.Application.Services.Interfaces;
 using PokeLeague.Web.Util;
@@ -7,6 +8,7 @@ using System.Reflection.Metadata.Ecma335;
 
 namespace PokeLeague.Web.Controllers
 {
+    [Authorize]
     public class CardController : Controller
     {
         private readonly IServiceCard _serviceCard;

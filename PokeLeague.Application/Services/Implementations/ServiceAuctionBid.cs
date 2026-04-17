@@ -15,25 +15,27 @@ namespace PokeLeague.Application.Services.Implementations
     {
         private readonly IRepositoryAuctionBid _repository;
         private readonly IRepositoryAuction _auctionRepository;
+        private readonly IRepositoryUser _userRepository;
         private readonly IMapper _mapper;
 
-        public ServiceAuctionBid(IRepositoryAuctionBid repository,IRepositoryAuction auctionRepository, IMapper mapper)
+        public ServiceAuctionBid(IRepositoryAuctionBid repository,IRepositoryAuction auctionRepository, IMapper mapper, IRepositoryUser repositoryUser)
         {
             _repository = repository;
             _auctionRepository = auctionRepository;
             _mapper = mapper;
+            _userRepository = repositoryUser;
         }
 
         //public async Task<int> AddAsync(AuctionBidDTO auctionBidDto)
         //{
-           
+
         //    var auctionBid = _mapper.Map<AuctionBid>(auctionBidDto);
         //    var id = await _repository.AddAsync(auctionBid);
 
         //    return id;
         //}
 
-        public async Task<int> AddAsync(AuctionBidDTO auctionBidDTO) 
+        public async Task<AuctionBidViewDTO> AddAsync(AuctionBidDTO auctionBidDTO)
         {
             var auction = await _auctionRepository.GetAuctionWithBids(auctionBidDTO.AuctionId);
 
@@ -49,8 +51,21 @@ namespace PokeLeague.Application.Services.Implementations
             var bid = _mapper.Map<AuctionBid>(auctionBidDTO);
             bid.BidDate = DateTime.Now;
 
-            return await _repository.AddAsync(bid);
+            await _repository.AddAsync(bid);
+
+            var user = await _userRepository.FindByIdAsync(bid.UserId);
+
+            return new AuctionBidViewDTO
+            {
+                Id = bid.Id,
+                BidAmount = bid.BidAmount,
+                BidDate = bid.BidDate,
+                Username =user.Username
+
+            };
+
         }
+       
 
         public async Task<AuctionBidDTO> FindByIdAsync(int id)
         {

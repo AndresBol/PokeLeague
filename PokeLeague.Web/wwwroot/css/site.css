@@ -87,3 +87,22 @@ body {
 {
     transform: scale(1.1);
 }
+
+/*New bid*/
+
+.new-bid {
+    background-color: #d4edda;
+    animation:fadeHighlight 2s ease forwards;
+}
+
+@keyframes fadeHighlight {
+    0%{
+        background-color:#28a745;
+        transform:scale(1.02);
+    }
+    100%{
+        background-color: transparent;
+        transform: scale(1);
+    }
+
+}

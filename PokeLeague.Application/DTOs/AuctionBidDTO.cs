@@ -17,6 +17,11 @@ namespace PokeLeague.Application.DTOs
         [DisplayName("Date")]
         public DateTime BidDate { get; set; }
         public bool IsActive { get; set; }
+
         public UserDTO User { get; set; } = new UserDTO();
+
+        //public UserSimpleDTO UserSimple { get; set; }= new UserSimpleDTO();
+
+
     }
 }

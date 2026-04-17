@@ -96,6 +96,15 @@
                 </span>
             </dd>
 
+            <h5 class="mb-3">
+                Current Price:
+                <span id="currentPrice" class="text-success fw-bold">
+                    $@(Model.AuctionBid.Any()
+                    ? Model.AuctionBid.Max(b => b.BidAmount)
+                    : Model.BasePrice)
+                </span>
+            </h5>
+
             <div class="mt-4 p-3 border rounded bg-light" style="max-width: 350px;">
 
                 <label for="bidAmount" class="form-label fw-bold">
@@ -154,7 +163,35 @@
                     </button>
                 }
           </div>
+    </div>
 
+    <div class="mt-5">
+        <h4>Latest Bids</h4>
+
+        <table class="table table-striped table-sm">
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th class="text-center">Amount</th>
+                    <th class="text-center">Date</th>
+                </tr>
+            </thead>
+
+            <tbody id="bidsTable">
+                @foreach (var bid in Model.AuctionBid
+                .OrderByDescending(b => b.BidDate)
+                .Take(5))
+                {
+                    <tr>
+                        <td>@bid.User.Username</td>
+                        <td class="text-center">$ @bid.BidAmount</td>
+                        <td class="text-center">
+                            @bid.BidDate.ToString("dd/MM/yyyy HH:mm")
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
     </div>
 </div>
 
@@ -181,12 +218,28 @@
                 }
             });
         }
+
+        function formatDate(date){
+
+            const day = String(date.getDate()).padStart(2,'0');
+            const month = String(date.getMonth()+1).padStart(2,'0');
+            const year = date.getFullYear();
+
+            const hours =String(date.getHours()).padStart(2,'0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+
+            return `${day}/${month}/${year} ${hours}:${minutes}`;
+        }
      
         document.getElementById("btnBid").addEventListener("click", async ()=> {
 
             const amount = document.getElementById("bidAmount").value;
+            const numericAmount = parseFloat(amount);
 
-            if(!amount || amount <= 0){
+            const currentPriceText = document.getElementById("currentPrice").innerText;
+            const currentPrice = parseFloat(currentPriceText.replace("$", "").trim());
+
+            if(!amount || numericAmount <= 0){
                 Swal.fire({
                     icon:'warning',
                     title: 'Invalid amount',
@@ -195,13 +248,24 @@
                 return;
             }
 
+            if(numericAmount <= currentPrice){
+                Swal.fire({
+                    icon:'warning',
+                    title: 'Bid too low',
+                    text: `Your bid must be higher than $${currentPrice}`
+                });
+                return;
+            }
+
             const auctionId = @(Model.Id);
+
             const data ={
                 auctionId:auctionId,
                 userId:2,
-                BidAmount: parseFloat(amount)
+                bidAmount: numericAmount
             };
-
+          const btn = document.getElementById("btnBid");
+          btn.disabled = true;
             try
             {
                 const response = await fetch('/Auction/CreateBid',{
@@ -212,15 +276,48 @@
                     body:JSON.stringify(data)
                 });
 
-                if(response.ok){
+               
+                const result = await response.json();
+
+                console.log("RESULT:", result);
+
+                if(result.success){
+                    const bid = result.data;
+
                 Swal.fire({
                    icon:'success',
                    title:'Bid placed!',
                    text:'Your bid was successful.'
-                
-                }).then(() =>{
-                    location.reload();
                 });
+                    document.getElementById("currentPrice").innerText = `$ ${bid.bidAmount.toFixed(2)}`;
+
+                    document.getElementById("bidAmount").value = "";
+
+                        const table = document.getElementById("bidsTable");
+
+                        const formattedAmount = bid.bidAmount.toFixed(2);
+                        const formattedDate = formatDate(new Date(bid.bidDate));
+
+                        const newRow = `
+                    <tr class="new-bid" data-id="${bid.id}">
+                    <td>${bid.username}</td>
+                     <td class="text-center">$ ${formattedAmount}</td>
+                      <td class="text-center">
+                     ${formattedDate}
+                </td>
+            </tr>
+        `;
+
+        const exists = table.querySelector(`tr[data-id="${bid.id}"]`);
+
+        if(!exists){
+        table.insertAdjacentHTML("afterbegin", newRow);
+
+        }
+
+        const firstRow= table.querySelector("tr");
+        firstRow.scrollIntoView({behavior:"smooth"});
+
 
                 } else{
                  Swal.fire({
@@ -236,8 +333,13 @@
                    title:'Connection error',
                    text:'Something went wrong.'
                 });
+            } finally{
+
+                 btn.disabled = false;
             }
         });
+
+
     
     </script>
 }

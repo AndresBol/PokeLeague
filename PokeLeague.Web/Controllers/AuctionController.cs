@@ -14,6 +14,7 @@ namespace PokeLeague.Web.Controllers
         private readonly IServiceAuction _serviceAuction;
         private readonly IServiceAuctionBid _serviceAuctionBid;
         private readonly IServiceUser _serviceUser;
+        private readonly IServiceRole _serviceRole;
 
         public AuctionController(IServiceAuction serviceAuction, IServiceUser serviceUser, IServiceRole serviceRole, IServiceAuctionBid serviceAuctionBid)
         {
@@ -282,9 +283,9 @@ namespace PokeLeague.Web.Controllers
         {
             try
             {
-                var id = await _serviceAuctionBid.AddAsync(auctionBidDTO);
+                var createdBid = await _serviceAuctionBid.AddAsync(auctionBidDTO);
 
-                return Json(new { success = true, id });
+                return Json(new { success = true, data = createdBid });
             }
             catch (Exception ex) 
             {

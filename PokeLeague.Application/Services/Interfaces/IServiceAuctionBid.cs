@@ -11,7 +11,7 @@ namespace PokeLeague.Application.Services.Interfaces
     {
         Task<ICollection<AuctionBidDTO>> ListAsync();
         Task<AuctionBidDTO> FindByIdAsync(int id);
-        Task<int> AddAsync(AuctionBidDTO auctionBidDto);
+        Task<AuctionBidViewDTO> AddAsync(AuctionBidDTO auctionBidDto);
         Task UpdateAsync(AuctionBidDTO auctionBidDto);
         Task DeleteAsync(int id);
 

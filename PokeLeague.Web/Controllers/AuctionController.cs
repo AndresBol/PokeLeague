@@ -5,6 +5,10 @@ using PokeLeague.Application.DTOs;
 using PokeLeague.Application.Services.Interfaces;
 using PokeLeague.Web.Util;
 using System.Security.Claims;
+using Microsoft.AspNetCore.SignalR;
+using PokeLeague.Web.Hubs;
+using System.Security.Claims;
+
 
 namespace PokeLeague.Web.Controllers
 {
@@ -15,13 +19,15 @@ namespace PokeLeague.Web.Controllers
         private readonly IServiceAuctionBid _serviceAuctionBid;
         private readonly IServiceUser _serviceUser;
         private readonly IServiceRole _serviceRole;
+        private readonly IHubContext<AuctionHub> _hubContext;
 
-        public AuctionController(IServiceAuction serviceAuction, IServiceUser serviceUser, IServiceRole serviceRole, IServiceAuctionBid serviceAuctionBid)
+        public AuctionController(IServiceAuction serviceAuction, IServiceUser serviceUser, IServiceRole serviceRole, IServiceAuctionBid serviceAuctionBid, IHubContext<AuctionHub> hubContext)
         {
             _serviceAuction = serviceAuction;
             _serviceUser = serviceUser;
             _serviceRole = serviceRole;
             _serviceAuctionBid = serviceAuctionBid;
+            _hubContext = hubContext;
         }
 
         public async Task<IActionResult> Index()
@@ -279,11 +285,30 @@ namespace PokeLeague.Web.Controllers
             return RedirectToAction(nameof(Details), new { id });
         }
         [HttpPost]
+        [Authorize]
         public async Task<IActionResult> CreateBid([FromBody] AuctionBidDTO auctionBidDTO)
         {
             try
             {
-                var createdBid = await _serviceAuctionBid.AddAsync(auctionBidDTO);
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+                if (!int.TryParse(userIdClaim, out int userId))
+                {
+                    return Unauthorized();
+                }
+
+                var createdBid = await _serviceAuctionBid.AddAsync(auctionBidDTO, userId);
+
+                await _hubContext.Clients
+                    .Groups(auctionBidDTO.AuctionId.ToString())
+                    .SendAsync("ReceiveBid", new
+                    {
+                        id = createdBid.Id,
+                        userId = userId,
+                        username =createdBid.Username,
+                        bidAmount = createdBid.BidAmount,
+                        bidDate = createdBid.BidDate
+                    });
 
                 return Json(new { success = true, data = createdBid });
             }

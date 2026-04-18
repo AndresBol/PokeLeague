@@ -35,12 +35,12 @@ namespace PokeLeague.Application.Services.Implementations
         //    return id;
         //}
 
-        public async Task<AuctionBidViewDTO> AddAsync(AuctionBidDTO auctionBidDTO)
+        public async Task<AuctionBidViewDTO> AddAsync(AuctionBidDTO auctionBidDTO, int userId)
         {
             var auction = await _auctionRepository.GetAuctionWithBids(auctionBidDTO.AuctionId);
 
             if (auction == null)
-                throw new Exception("Auction no founded");
+                throw new Exception("Auction not found");
 
             decimal maxBid = auction.AuctionBid.Any()
                 ? auction.AuctionBid.Max(b => b.BidAmount)
@@ -49,11 +49,26 @@ namespace PokeLeague.Application.Services.Implementations
                 throw new Exception("The bid should be higher");
 
             var bid = _mapper.Map<AuctionBid>(auctionBidDTO);
+
+            bid.UserId = userId;
+           
             bid.BidDate = DateTime.Now;
+
+            var latestAuction = await _auctionRepository.GetAuctionWithBids(auctionBidDTO.AuctionId);
+
+            decimal latestMaxBid = latestAuction.AuctionBid.Any()
+                ? latestAuction.AuctionBid.Max(b => b.BidAmount)
+                : latestAuction.BasePrice;
+
+            if (auctionBidDTO.BidAmount <= latestMaxBid)
+                throw new Exception("The bid should be higher (updated)");
 
             await _repository.AddAsync(bid);
 
-            var user = await _userRepository.FindByIdAsync(bid.UserId);
+            var user = await _userRepository.FindByIdAsync(userId);
+
+            if (user == null)
+                throw new Exception("User not found");
 
             return new AuctionBidViewDTO
             {

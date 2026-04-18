@@ -113,7 +113,7 @@
 
                 <div class="input-group">
                     <span class="input-group-text">$</span>
-                    <input type="number" id="bidAmount" class="form-control" placeholder="Enter amount" />
+                    <input type="number" id="bidAmount" class="form-control" step="0.01" min="0" placeholder="Enter amount" />
                 </div>
 
                 <button id="btnBid"  class="btn btn-primary w-100 mt-3">
@@ -184,7 +184,7 @@
                 {
                     <tr>
                         <td>@bid.User.Username</td>
-                        <td class="text-center">$ @bid.BidAmount</td>
+                        <td class="text-center">$ @bid.BidAmount.ToString("F2")</td>
                         <td class="text-center">
                             @bid.BidDate.ToString("dd/MM/yyyy HH:mm")
                         </td>
@@ -199,39 +199,116 @@
     <a asp-action="Index" class="btn btn-secondary align-items-center"><h3><i class="bi bi-arrow-return-left me-3"></i>Back to list</h3></a>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+
 @section Scripts {
+
+
     <script>
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/auctionHub")
+            .build();
+
+        const currentUserId = parseInt('@(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0")');
+        const auctionId = @(Model.Id);
+        const minIncrease = @(Model.MinIncrease);
+
+        let lastBidId = null;
+
+
+        connection.on("ReceiveBid", (bid) => {
+
+            console.log("Bid received:", bid);
+
+            const table = document.getElementById("bidsTable");
+
+            const formattedAmount = bid.bidAmount.toFixed(2);
+            const formattedDate = formatDate(new Date(bid.bidDate));
+
+            const isMine = bid.userId === currentUserId;
+
+
+            if (!isMine && bid.id !== lastBidId) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'You have been outbid!',
+                    text: `New bid: $${formattedAmount}`,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            }
+
+            lastBidId = bid.id;
+
+            const usernameDisplay = isMine ? "You" : bid.username;
+
+            const exists = table.querySelector(`tr[data-id="${bid.id}"]`);
+
+            if (!exists) {
+                const newRow = `
+                    <tr class="new-bid ${isMine ? 'table-success' : ''}" data-id="${bid.id}">
+                        <td>${usernameDisplay}</td>
+                        <td class="text-center">$ ${formattedAmount}</td>
+                        <td class="text-center">${formattedDate}</td>
+                    </tr>
+                `;
+
+                table.insertAdjacentHTML("afterbegin", newRow);
+
+                const firstRow = table.querySelector("tr");
+                firstRow.scrollIntoView({ behavior: "smooth", block: "nearest" });
+
+                firstRow.classList.add("flash");
+                setTimeout(() => firstRow.classList.remove("flash"), 2000);
+
+
+                const rows = table.querySelectorAll("tr");
+                if (rows.length > 10) {
+                    rows[rows.length - 1].remove();
+                }
+            }
+
+            document.getElementById("currentPrice").innerText = `$ ${formattedAmount}`;
+        });
+
+
+        connection.start()
+            .then(() => {
+                console.log("Connected to SignalR");
+                connection.invoke("JoinAuctionGroup", auctionId.toString());
+            })
+            .catch(err => console.error(err));
+
+
         function confirmCancel() {
             Swal.fire({
                 title: 'Are you sure you want to cancel this auction?',
                 text: "This action cannot be undone.",
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
                 confirmButtonText: 'Yes, cancel it!',
                 cancelButtonText: 'No, go back'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    var form = document.getElementById('cancelForm');
-                    form.submit();
+                    document.getElementById('cancelForm').submit();
                 }
             });
         }
 
-        function formatDate(date){
 
-            const day = String(date.getDate()).padStart(2,'0');
-            const month = String(date.getMonth()+1).padStart(2,'0');
+        function formatDate(date) {
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
             const year = date.getFullYear();
 
-            const hours =String(date.getHours()).padStart(2,'0');
+            const hours = String(date.getHours()).padStart(2, '0');
             const minutes = String(date.getMinutes()).padStart(2, '0');
 
             return `${day}/${month}/${year} ${hours}:${minutes}`;
         }
-     
-        document.getElementById("btnBid").addEventListener("click", async ()=> {
+
+
+        document.getElementById("btnBid").addEventListener("click", async () => {
 
             const amount = document.getElementById("bidAmount").value;
             const numericAmount = parseFloat(amount);
@@ -239,107 +316,67 @@
             const currentPriceText = document.getElementById("currentPrice").innerText;
             const currentPrice = parseFloat(currentPriceText.replace("$", "").trim());
 
-            if(!amount || numericAmount <= 0){
+            if (!amount || numericAmount <= 0) {
                 Swal.fire({
-                    icon:'warning',
+                    icon: 'warning',
                     title: 'Invalid amount',
                     text: 'Please enter a valid bid.'
                 });
                 return;
             }
 
-            if(numericAmount <= currentPrice){
+
+            if (numericAmount < currentPrice + minIncrease) {
                 Swal.fire({
-                    icon:'warning',
+                    icon: 'warning',
                     title: 'Bid too low',
-                    text: `Your bid must be higher than $${currentPrice}`
+                    text: `Minimum bid is $${(currentPrice + minIncrease).toFixed(2)}`
                 });
                 return;
             }
 
-            const auctionId = @(Model.Id);
-
-            const data ={
-                auctionId:auctionId,
-                userId:2,
+            const data = {
+                auctionId: auctionId,
                 bidAmount: numericAmount
             };
-          const btn = document.getElementById("btnBid");
-          btn.disabled = true;
-            try
-            {
-                const response = await fetch('/Auction/CreateBid',{
+
+            const btn = document.getElementById("btnBid");
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/Auction/CreateBid', {
                     method: 'POST',
-                    headers:{
-                        'Content-Type': 'application/json'
-                    },
-                    body:JSON.stringify(data)
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
                 });
 
-               
                 const result = await response.json();
 
-                console.log("RESULT:", result);
-
-                if(result.success){
-                    const bid = result.data;
-
-                Swal.fire({
-                   icon:'success',
-                   title:'Bid placed!',
-                   text:'Your bid was successful.'
-                });
-                    document.getElementById("currentPrice").innerText = `$ ${bid.bidAmount.toFixed(2)}`;
+                if (result.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Bid placed!',
+                        text: 'Your bid was successful.'
+                    });
 
                     document.getElementById("bidAmount").value = "";
-
-                        const table = document.getElementById("bidsTable");
-
-                        const formattedAmount = bid.bidAmount.toFixed(2);
-                        const formattedDate = formatDate(new Date(bid.bidDate));
-
-                        const newRow = `
-                    <tr class="new-bid" data-id="${bid.id}">
-                    <td>${bid.username}</td>
-                     <td class="text-center">$ ${formattedAmount}</td>
-                      <td class="text-center">
-                     ${formattedDate}
-                </td>
-            </tr>
-        `;
-
-        const exists = table.querySelector(`tr[data-id="${bid.id}"]`);
-
-        if(!exists){
-        table.insertAdjacentHTML("afterbegin", newRow);
-
-        }
-
-        const firstRow= table.querySelector("tr");
-        firstRow.scrollIntoView({behavior:"smooth"});
-
-
-                } else{
-                 Swal.fire({
-                   icon:'error',
-                   title:'Error',
-                   text:'Could not place bid.'
-                });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: result.message
+                    });
                 }
-                
-            }catch(error){
-                Swal.fire({
-                   icon:'error',
-                   title:'Connection error',
-                   text:'Something went wrong.'
-                });
-            } finally{
 
-                 btn.disabled = false;
+            } catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Connection error',
+                    text: 'Something went wrong.'
+                });
+            } finally {
+                btn.disabled = false;
             }
         });
-
-
-    
     </script>
 }

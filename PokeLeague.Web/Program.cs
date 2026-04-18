@@ -8,6 +8,7 @@ using PokeLeague.Application.Services.Interfaces;
 using PokeLeague.Infraestructure.Data;
 using PokeLeague.Infraestructure.Repository.Implementations;
 using PokeLeague.Infraestructure.Repository.Interfaces;
+using PokeLeague.Web.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -99,6 +100,14 @@ builder.Services.AddControllersWithViews(options =>
         });
 });
 
+
+// =====================
+// Configurar SignalR
+// =====================
+
+builder.Services.AddSignalR();
+
+
 // ==============================
 // Configurar SQL Server DbContext
 // ==============================
@@ -145,6 +154,8 @@ app.UseAuthorization();
 
 app.MapStaticAssets();
 
+app.MapHub<AuctionHub>("/auctionHub");
+
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}")
@@ -152,3 +163,5 @@ app.MapControllerRoute(
 
 
 app.Run();
+
+

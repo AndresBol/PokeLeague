@@ -140,6 +140,13 @@ namespace PokeLeague.Web.Controllers
                 );
                 return RedirectToAction(nameof(Index));
             }
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            int currentUserId = int.Parse(userIdClaim!);
+
+            auction.HasUserBid = auction.AuctionBid
+                .Any(b => b.UserId == currentUserId);
+
+
             return View(auction);
         }
 

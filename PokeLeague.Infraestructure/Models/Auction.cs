@@ -31,5 +31,5 @@ public partial class Auction
 
     public virtual User User { get; set; } = null!;
 
-    //public string Status { get; set; } = "Scheduled";
+   
 }

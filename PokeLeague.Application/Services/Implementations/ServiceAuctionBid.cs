@@ -40,9 +40,12 @@ namespace PokeLeague.Application.Services.Implementations
             var auction = await _auctionRepository.GetAuctionWithBids(auctionBidDTO.AuctionId);
 
             if (auction == null)
+
+                throw new Exception("Auction not found");
+           if (auction.UserId == userId)
                 throw new Exception("Auction not found");
 
-            if(auction.IsCanceled)
+            if (auction.IsCanceled)
                 throw new Exception("Auction is canceled");
 
             if (DateTime.Now < auction.StartDate)

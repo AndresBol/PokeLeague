@@ -42,6 +42,13 @@ namespace PokeLeague.Application.Services.Implementations
 
             auctionDTO.Status = ResolveStatusAsync(auctionDTO);
 
+            auctionDTO.CurrentHighestBidUserId = auction.AuctionBid.Any()
+               ? auction.AuctionBid
+                .OrderByDescending(b => b.BidAmount)
+                .Select(b => b.UserId)
+                .FirstOrDefault()
+               : null;
+
             return auctionDTO;
         }
 

@@ -98,9 +98,18 @@ namespace PokeLeague.Application.Services.Implementations
             return "Finished";
         }
 
+        private void UpdateStatus (IEnumerable<AuctionDTO> auctions) 
+        {
+            foreach (var auction in auctions) 
+            {
+                auction.Status = ResolveStatusAsync(auction);
+            }
+        }
         public async Task<ICollection<AuctionDTO>> ListActiveAsync() 
         {
             var auction = await ListAsync();
+
+            UpdateStatus(auction);
 
             return auction
                 .Where(a => a.Status =="Scheduled" || a.Status =="In Progress")
@@ -111,6 +120,8 @@ namespace PokeLeague.Application.Services.Implementations
         public async Task<ICollection<AuctionDTO>> ListClosedAsync()
         {
             var auction = await ListAsync();
+
+            UpdateStatus(auction);
 
             return auction
                 .Where(a => a.Status == "Finished" || a.Status == "Canceled")

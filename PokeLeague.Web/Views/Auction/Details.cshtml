@@ -205,26 +205,69 @@
 
 
     <script>
-        const connection = new signalR.HubConnectionBuilder()
-            .withUrl("/auctionHub")
-            .build();
 
         const currentUserId = parseInt('@(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0")');
         const auctionId = @(Model.Id);
         const minIncrease = @(Model.MinIncrease);
+        const auctionStatus = "@Model.Status";
 
         let lastBidId = null;
 
 
+
+        const btn = document.getElementById("btnBid");
+        const input = document.getElementById("bidAmount");
+        const currentPriceElement = document.getElementById("currentPrice");
+        const bidsTable = document.getElementById("bidsTable");
+
+
+
+        function setupAuctionUI(status) {
+
+            switch (status) {
+
+                case "In Progress":
+                    btn.className = "btn btn-success w-100 mt-3";
+                    btn.innerText = "Place Bid";
+                    btn.disabled = false;
+                    input.disabled = false;
+                    break;
+
+                case "Scheduled":
+                    btn.className = "btn btn-warning w-100 mt-3";
+                    btn.innerText = "Starts Soon";
+                    btn.disabled = true;
+                    input.disabled = true;
+                    break;
+
+                case "Finished":
+                    btn.className = "btn btn-secondary w-100 mt-3";
+                    btn.innerText = "Auction Ended";
+                    btn.disabled = true;
+                    input.disabled = true;
+                    break;
+
+                case "Canceled":
+                    btn.className = "btn btn-danger w-100 mt-3";
+                    btn.innerText = "Auction Canceled";
+                    btn.disabled = true;
+                    input.disabled = true;
+                    break;
+            }
+        }
+
+        setupAuctionUI(auctionStatus);
+
+
+        // SingnalR
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/auctionHub")
+            .build();
+
         connection.on("ReceiveBid", (bid) => {
-
-            console.log("Bid received:", bid);
-
-            const table = document.getElementById("bidsTable");
 
             const formattedAmount = bid.bidAmount.toFixed(2);
             const formattedDate = formatDate(new Date(bid.bidDate));
-
             const isMine = bid.userId === currentUserId;
 
 
@@ -242,53 +285,60 @@
 
             const usernameDisplay = isMine ? "You" : bid.username;
 
-            const exists = table.querySelector(`tr[data-id="${bid.id}"]`);
 
-            if (!exists) {
-                const newRow = `
-                    <tr class="new-bid ${isMine ? 'table-success' : ''}" data-id="${bid.id}">
-                        <td>${usernameDisplay}</td>
-                        <td class="text-center">$ ${formattedAmount}</td>
-                        <td class="text-center">${formattedDate}</td>
-                    </tr>
-                `;
-
-                table.insertAdjacentHTML("afterbegin", newRow);
-
-                const firstRow = table.querySelector("tr");
-                firstRow.scrollIntoView({ behavior: "smooth", block: "nearest" });
-
-                firstRow.classList.add("flash");
-                setTimeout(() => firstRow.classList.remove("flash"), 2000);
+            const exists = bidsTable.querySelector(`tr[data-id="${bid.id}"]`);
+            if (exists) return;
 
 
-                const rows = table.querySelectorAll("tr");
-                if (rows.length > 10) {
-                    rows[rows.length - 1].remove();
-                }
+            const newRow = `
+                <tr class="${isMine ? 'table-success' : ''}" data-id="${bid.id}">
+                    <td>${usernameDisplay}</td>
+                    <td class="text-center">$ ${formattedAmount}</td>
+                    <td class="text-center">${formattedDate}</td>
+                </tr>
+            `;
+
+            bidsTable.insertAdjacentHTML("afterbegin", newRow);
+
+
+            const firstRow = bidsTable.querySelector("tr");
+            firstRow.classList.add("flash");
+            setTimeout(() => firstRow.classList.remove("flash"), 2000);
+
+
+            const rows = bidsTable.querySelectorAll("tr");
+            if (rows.length > 10) {
+                rows[rows.length - 1].remove();
             }
 
-            document.getElementById("currentPrice").innerText = `$ ${formattedAmount}`;
+
+            currentPriceElement.innerText = `$ ${formattedAmount}`;
         });
 
-
         connection.start()
-            .then(() => {
-                console.log("Connected to SignalR");
-                connection.invoke("JoinAuctionGroup", auctionId.toString());
-            })
+            .then(() => connection.invoke("JoinAuctionGroup", auctionId.toString()))
             .catch(err => console.error(err));
 
 
+
+        function formatDate(date) {
+            return date.toLocaleString("es-DO", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit"
+            });
+        }
+
         function confirmCancel() {
             Swal.fire({
-                title: 'Are you sure you want to cancel this auction?',
+                title: 'Are you sure?',
                 text: "This action cannot be undone.",
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonText: 'Yes, cancel it!',
-                cancelButtonText: 'No, go back'
-            }).then((result) => {
+                confirmButtonText: 'Yes, cancel it!'
+            }).then(result => {
                 if (result.isConfirmed) {
                     document.getElementById('cancelForm').submit();
                 }
@@ -296,87 +346,70 @@
         }
 
 
-        function formatDate(date) {
-            const day = String(date.getDate()).padStart(2, '0');
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const year = date.getFullYear();
+        // Evento para hacer la Puja
+        btn.addEventListener("click", async () => {
 
-            const hours = String(date.getHours()).padStart(2, '0');
-            const minutes = String(date.getMinutes()).padStart(2, '0');
-
-            return `${day}/${month}/${year} ${hours}:${minutes}`;
-        }
+            if (btn.disabled) return;
 
 
-        document.getElementById("btnBid").addEventListener("click", async () => {
+            if (!currentUserId) {
+                return Swal.fire('Login required', 'You must be logged in.', 'warning');
+            }
 
-            const amount = document.getElementById("bidAmount").value;
+            if (auctionStatus !== "In Progress") {
+                return Swal.fire('Auction not active', 'Bidding is closed.', 'warning');
+            }
+
+            const amount = input.value;
             const numericAmount = parseFloat(amount);
 
-            const currentPriceText = document.getElementById("currentPrice").innerText;
-            const currentPrice = parseFloat(currentPriceText.replace("$", "").trim());
+            const currentPrice = parseFloat(
+                currentPriceElement.innerText.replace("$", "").trim()
+            );
 
             if (!amount || numericAmount <= 0) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Invalid amount',
-                    text: 'Please enter a valid bid.'
-                });
-                return;
+                return Swal.fire('Invalid amount', 'Enter a valid bid.', 'warning');
             }
 
+            if (!/^\d+(\.\d{1,2})?$/.test(amount)) {
+                return Swal.fire('Invalid format', 'Max 2 decimals.', 'warning');
+            }
 
             if (numericAmount < currentPrice + minIncrease) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Bid too low',
-                    text: `Minimum bid is $${(currentPrice + minIncrease).toFixed(2)}`
-                });
-                return;
+                return Swal.fire(
+                    'Bid too low',
+                    `Minimum: $${(currentPrice + minIncrease).toFixed(2)}`,
+                    'warning'
+                );
             }
 
-            const data = {
-                auctionId: auctionId,
-                bidAmount: numericAmount
-            };
-
-            const btn = document.getElementById("btnBid");
             btn.disabled = true;
 
             try {
                 const response = await fetch('/Auction/CreateBid', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
+                    body: JSON.stringify({
+                        auctionId,
+                        bidAmount: numericAmount
+                    })
                 });
 
                 const result = await response.json();
 
                 if (result.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Bid placed!',
-                        text: 'Your bid was successful.'
-                    });
-
-                    document.getElementById("bidAmount").value = "";
+                    Swal.fire('Success', 'Bid placed!', 'success');
+                    input.value = "";
                 } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: result.message
-                    });
+                    Swal.fire('Error', result.message, 'error');
                 }
 
-            } catch (error) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Connection error',
-                    text: 'Something went wrong.'
-                });
+            } catch {
+                Swal.fire('Error', 'Connection failed.', 'error');
             } finally {
                 btn.disabled = false;
             }
         });
+
     </script>
 }

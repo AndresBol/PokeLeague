@@ -42,26 +42,32 @@ namespace PokeLeague.Application.Services.Implementations
             if (auction == null)
                 throw new Exception("Auction not found");
 
-            decimal maxBid = auction.AuctionBid.Any()
-                ? auction.AuctionBid.Max(b => b.BidAmount)
-                : auction.BasePrice;
-            if (auctionBidDTO.BidAmount <= maxBid)
-                throw new Exception("The bid should be higher");
+            if(auction.IsCanceled)
+                throw new Exception("Auction is canceled");
+
+            if (DateTime.Now < auction.StartDate)
+                throw new Exception("Auction has not started");
+
+            if (DateTime.Now > auction.EndDate)
+                throw new Exception("Auction has ended");
+
+            var currentPrice = GetCurrentPrice(auction);
+
+            if (auctionBidDTO.BidAmount < currentPrice + auction.MinIncrease)
+                throw new Exception($"Minimum allowed bid is {(currentPrice + auction.MinIncrease):F2}");
 
             var bid = _mapper.Map<AuctionBid>(auctionBidDTO);
 
             bid.UserId = userId;
-           
             bid.BidDate = DateTime.Now;
+
 
             var latestAuction = await _auctionRepository.GetAuctionWithBids(auctionBidDTO.AuctionId);
 
-            decimal latestMaxBid = latestAuction.AuctionBid.Any()
-                ? latestAuction.AuctionBid.Max(b => b.BidAmount)
-                : latestAuction.BasePrice;
+            var latestPrice = GetCurrentPrice(latestAuction);
 
-            if (auctionBidDTO.BidAmount <= latestMaxBid)
-                throw new Exception("The bid should be higher (updated)");
+            if (auctionBidDTO.BidAmount < latestPrice + latestAuction.MinIncrease)
+                throw new Exception("Another bid was placed. Try again!");
 
             await _repository.AddAsync(bid);
 
@@ -79,6 +85,13 @@ namespace PokeLeague.Application.Services.Implementations
 
             };
 
+        }
+
+        private decimal GetCurrentPrice(Auction auction) 
+        {
+            return auction.AuctionBid.Any()
+                ? auction.AuctionBid.Max(b => b.BidAmount)
+                : auction.BasePrice;
         }
        
 

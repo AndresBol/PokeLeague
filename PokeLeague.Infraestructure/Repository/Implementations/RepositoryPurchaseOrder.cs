@@ -46,8 +46,42 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
         {
             var purchaseOrder = await _context.Set<PurchaseOrder>()
                 .AsNoTracking()
+                .Include(po => po.User)
+                    .ThenInclude(u => u.Role)
+                .Include(po => po.Auction)
+                    .ThenInclude(a => a.Card)
+                        .ThenInclude(c => c.Image)
+                .Include(po => po.Auction)
+                    .ThenInclude(a => a.Card)
+                        .ThenInclude(c => c.Set)
+                .Include(po => po.Auction)
+                    .ThenInclude(a => a.Card)
+                        .ThenInclude(c => c.Rarity)
+                .Include(po => po.Auction)
+                    .ThenInclude(a => a.Card)
+                        .ThenInclude(c => c.LanguageCodeNavigation)
+                .Include(po => po.Auction)
+                    .ThenInclude(a => a.Card)
+                        .ThenInclude(c => c.CategoryCard)
+                            .ThenInclude(cc => cc.Category)
+                .Include(po => po.Auction)
+                    .ThenInclude(a => a.Card)
+                        .ThenInclude(c => c.User)
+                .Include(po => po.Auction)
+                    .ThenInclude(a => a.User)
+                .Include(po => po.Auction)
+                    .ThenInclude(a => a.AuctionBid)
+                        .ThenInclude(ab => ab.User)
                 .FirstOrDefaultAsync(po => po.Id == id && po.IsActive);
             return purchaseOrder!;
+        }
+
+        public async Task<PurchaseOrder?> FindByAuctionIdAsync(int auctionId)
+        {
+            var purchaseOrder = await _context.Set<PurchaseOrder>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(po => po.AuctionId == auctionId && po.IsActive);
+            return purchaseOrder;
         }
 
         public async Task<ICollection<PurchaseOrder>> ListAsync()
@@ -56,11 +90,29 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
                 .AsNoTracking()
                 .Include(po => po.Auction)
                     .ThenInclude(a => a.Card)
+                        .ThenInclude(c => c.Image)
                 .Include(po => po.Auction)
                     .ThenInclude(a => a.User)
                 .Include(po => po.User)
                     .ThenInclude(u => u.Role)
                 .Where(po => po.IsActive)
+                .OrderBy(po => po.Id)
+                .ToListAsync();
+            return purchaseOrders!;
+        }
+
+        public async Task<ICollection<PurchaseOrder>> ListByUserIdAsync(int userId)
+        {
+            var purchaseOrders = await _context.Set<PurchaseOrder>()
+                .AsNoTracking()
+                .Include(po => po.Auction)
+                    .ThenInclude(a => a.Card)
+                        .ThenInclude(c => c.Image)
+                .Include(po => po.Auction)
+                    .ThenInclude(a => a.User)
+                .Include(po => po.User)
+                    .ThenInclude(u => u.Role)
+                .Where(po => po.IsActive && po.UserId == userId)
                 .OrderBy(po => po.Id)
                 .ToListAsync();
             return purchaseOrders!;
@@ -86,6 +138,7 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
                     existingPurchaseOrder.AuctionId = purchaseOrder.AuctionId;
                     existingPurchaseOrder.UserId = purchaseOrder.UserId;
                     existingPurchaseOrder.PurchaseAmount = purchaseOrder.PurchaseAmount;
+                    existingPurchaseOrder.PaymentDate = purchaseOrder.PaymentDate;
                     existingPurchaseOrder.IsPaid = purchaseOrder.IsPaid;
                     existingPurchaseOrder.IsActive = purchaseOrder.IsActive;
 

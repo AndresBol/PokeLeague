@@ -9,7 +9,7 @@ using System.Security.Claims;
 
 namespace PokeLeague.Web.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = "Admin")]
     public class CardController : Controller
     {
         private readonly IServiceCard _serviceCard;

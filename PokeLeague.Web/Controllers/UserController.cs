@@ -5,7 +5,7 @@ using PokeLeague.Application.Services.Interfaces;
 
 namespace PokeLeague.Web.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = "Admin")]
     public class UserController : Controller
     {
         private readonly IServiceUser _serviceUser;

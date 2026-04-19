@@ -1,0 +1,211 @@
+@model PokeLeague.Application.DTOs.PurchaseOrderDTO
+
+@{
+    ViewData["Title"] = "Payment Detail";
+    var card = Model.Auction?.Card;
+    var imageCount = card?.Image?.Count ?? 0;
+    var winner = Model.Auction?.AuctionBid?
+        .OrderByDescending(b => b.BidAmount)
+        .FirstOrDefault();
+    var loggedUserId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
+    var isBuyer = loggedUserId == Model.UserId;
+}
+
+<div class="d-flex flex-row align-items-center justify-content-between">
+    <h2>Payment Detail</h2>
+    @if (Model.Status == "Pending" && isBuyer)
+    {
+        <form id="confirmForm" asp-action="ConfirmPayment" asp-route-id="@Model.Id" method="post">
+            @Html.AntiForgeryToken()
+            <button type="button" class="btn btn-success" onclick="confirmPayment()">
+                <i class="bi bi-check-circle"></i> Confirm Payment
+            </button>
+        </form>
+    }
+</div>
+
+<div class="container-sm mb-2">
+    <div class="container-lg d-flex flex-column flex-lg-row justify-content-between align-items-start mt-4">
+        <dl class="row">
+
+            <dt class="col-sm-4 h5 text-nowrap">
+                Payment Status:
+            </dt>
+            <dd class="col-sm-8">
+                @if (Model.Status == "Confirmed")
+                {
+                    <div class="chip success">Confirmed</div>
+                }
+                else
+                {
+                    <div class="chip warning">Pending</div>
+                }
+            </dd>
+
+            <dt class="col-sm-4 h5 text-nowrap">
+                Payment Amount:
+            </dt>
+            <dd class="col-sm-8">
+                <strong class="fs-5">$@Model.PurchaseAmount</strong>
+            </dd>
+
+            <dt class="col-sm-4 h5 text-nowrap">
+                Payment Date:
+            </dt>
+            <dd class="col-sm-8">
+                @Model.PaymentDate.ToString("dd MMM yyyy hh:mm tt")
+            </dd>
+
+            <dt class="col-sm-4 h5 text-nowrap">
+                Buyer (Winner):
+            </dt>
+            <dd class="col-sm-8">
+                <i class="bi bi-person-fill me-1"></i> @Model.User?.Username
+                <br />
+                <small class="text-muted">@Model.User?.Email</small>
+            </dd>
+
+            <dt class="col-sm-4 h5 text-nowrap">
+                Auction:
+            </dt>
+            <dd class="col-sm-8">
+                <a asp-controller="Auction" asp-action="Details" asp-route-id="@Model.AuctionId" class="text-decoration-none">
+                    <i class="bi bi-briefcase me-1"></i> Auction #@Model.AuctionId
+                </a>
+            </dd>
+
+            <hr class="my-3" />
+
+            <h4 class="mb-3"><i class="bi bi-card-heading me-2"></i>Card Information</h4>
+
+            <dt class="col-sm-4 h5 text-nowrap">
+                Card Name:
+            </dt>
+            <dd class="col-sm-8">
+                @card?.Name
+            </dd>
+
+            <dt class="col-sm-4 h5 text-nowrap">
+                Description:
+            </dt>
+            <dd class="col-sm-8">
+                @card?.Description
+            </dd>
+
+            <dt class="col-sm-4 h5 text-nowrap">
+                Set:
+            </dt>
+            <dd class="col-sm-8">
+                @card?.Set?.Name
+            </dd>
+
+            <dt class="col-sm-4 h5 text-nowrap">
+                Rarity:
+            </dt>
+            <dd class="col-sm-8">
+                @card?.Rarity?.Name
+            </dd>
+
+            <dt class="col-sm-4 h5 text-nowrap">
+                Language:
+            </dt>
+            <dd class="col-sm-8">
+                @card?.Language?.LanguageName
+            </dd>
+
+            <dt class="col-sm-4 h5 text-nowrap">
+                Grade:
+            </dt>
+            <dd class="col-sm-8">
+                @(card?.Grade != null ? card.Grade.ToString() : "Not Graded")
+            </dd>
+
+            <dt class="col-sm-4 h5 text-nowrap">
+                Condition:
+            </dt>
+            <dd class="col-sm-8">
+                <div class="chip @(card?.IsNew == true ? "success" : "warning")">
+                    @(card?.IsNew == true ? "New" : "Used")
+                </div>
+            </dd>
+
+            <dt class="col-sm-4 h5 text-nowrap">
+                Categories:
+            </dt>
+            <dd class="col-sm-8">
+                @if (card?.CategoryCard != null)
+                {
+                    @foreach (var category in card.CategoryCard)
+                    {
+                        <div class="chip secondary me-1">@category.Category?.Name</div>
+                    }
+                }
+            </dd>
+
+        </dl>
+
+        @if (card != null && card.Image != null && card.Image.Any())
+        {
+            <div id="carouselPayment@(Model.Id)Images" class="carousel slide" data-bs-ride="carousel" style="width: 385px;">
+                <div class="carousel-indicators">
+                    @for (int i = 0; i < imageCount && imageCount > 1; i++)
+                    {
+                        <button type="button" data-bs-target="#carouselPayment@(Model.Id)Images" data-bs-slide-to="@i" class="@(i == 0 ? "active" : "")" aria-current="true" aria-label="Slide @(i + 1)"></button>
+                    }
+                </div>
+                <div class="carousel-inner">
+                    @foreach (var image in card.Image)
+                    {
+                        <div class="carousel-item @(image.Id == card.Image.First().Id ? "active" : "")">
+                            <img src="data:image/jpeg;base64,@Convert.ToBase64String(image.ImageData)"
+                                 style="width: 385px; height: auto; max-height: 450px; flex-grow: 0; flex-shrink: 0;"
+                                 loading="lazy" alt="@card.Name Image" />
+                        </div>
+                    }
+                </div>
+                @if (imageCount > 1)
+                {
+                    <button class="carousel-control-prev" type="button" data-bs-target="#carouselPayment@(Model.Id)Images" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Previous</span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#carouselPayment@(Model.Id)Images" data-bs-slide="next">
+                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Next</span>
+                    </button>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+<div class="d-flex flex-wrap gap-2 my-5 mx-2">
+    <a asp-action="Index" class="btn btn-secondary">
+        <i class="bi bi-arrow-return-left me-2"></i> Back to Payment History
+    </a>
+    <a asp-controller="Auction" asp-action="Details" asp-route-id="@Model.AuctionId" class="btn btn-outline-primary">
+        <i class="bi bi-briefcase me-2"></i> View Auction
+    </a>
+</div>
+
+@section Scripts {
+    <script>
+        function confirmPayment() {
+            Swal.fire({
+                title: 'Confirm this payment?',
+                text: "This will mark the payment as confirmed.",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#198754',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, confirm it!',
+                cancelButtonText: 'No, go back'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    var form = document.getElementById('confirmForm');
+                    form.submit();
+                }
+            });
+        }
+    </script>
+}

@@ -116,9 +116,10 @@
                 </div>
 
             </div>
-
-            <button type="submit" class="btn btn-success">Create</button>
-            <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+            <div class="d-flex flex-row justify-content-around">
+                <a asp-action="Index" class="btn btn-secondary"><i class="bi bi-x-lg me-2"></i> Cancel</a>
+                <button type="submit" class="btn btn-success"><i class="bi bi-floppy2-fill me-2"></i> Save</button>
+            </div>
         </form>
 
         <div id="card-content">

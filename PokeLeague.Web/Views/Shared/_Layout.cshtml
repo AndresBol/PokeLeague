@@ -31,14 +31,20 @@
             </div>
             <div class="navbar-collapse collapse d-md-inline-flex justify-content-between flex-grow-1">
                 <ul class="navbar-nav flex-grow-1 gap-2 h5">
-                    <li class="nav-item">
-                        <a class="nav-link @(IsSelectedAction("User", "Index") ? "border-bottom border-warning border-2 text-dark" : "")" asp-area="" asp-controller="user" asp-action="Index"><i class="bi bi-people-fill me-1"></i> Users</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link @(IsSelectedAction("Card", "Index") ? "border-bottom border-warning border-2 text-dark" : "")" asp-area="" asp-controller="card" asp-action="Index"><i class="bi bi-card-heading me-1"></i> Cards</a>
-                    </li>
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link @(IsSelectedAction("User", "Index") ? "border-bottom border-warning border-2 text-dark" : "")" asp-area="" asp-controller="user" asp-action="Index"><i class="bi bi-people-fill me-1"></i> Users</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link @(IsSelectedAction("Card", "Index") ? "border-bottom border-warning border-2 text-dark" : "")" asp-area="" asp-controller="card" asp-action="Index"><i class="bi bi-card-heading me-1"></i> Cards</a>
+                        </li>
+                    }
                     <li class="nav-item">
                         <a class="nav-link @(IsSelectedAction("Auction", "Index") ? "border-bottom border-warning border-2 text-dark" : "")" asp-area="" asp-controller="Auction" asp-action="Index"><i class="bi bi-briefcase-fill me-1"></i> Auctions</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link @(IsSelectedAction("PurchaseOrder", "Index") ? "border-bottom border-warning border-2 text-dark" : "")" asp-area="" asp-controller="PurchaseOrder" asp-action="Index"><i class="bi bi-credit-card me-1"></i> Payments</a>
                     </li>
                 </ul>
                 <ul class="navbar-nav ms-auto gap-2 align-items-center">

@@ -65,6 +65,17 @@ namespace PokeLeague.Web.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
+            var currentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            if (auction.UserId != currentUserId && !User.IsInRole("Admin"))
+            {
+                TempData["Notification"] = SweetAlertHelper.CreateNotification(
+                    "Unauthorized",
+                    "You can only edit your own auctions.",
+                    SweetAlertMessageType.error
+                );
+                return RedirectToAction(nameof(Index));
+            }
+
             if (auction.Status != "Scheduled" || auction.AuctionBid.Count > 0)
             {
                 TempData["Notification"] = SweetAlertHelper.CreateNotification(
@@ -218,6 +229,17 @@ namespace PokeLeague.Web.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
+            var currentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            if (existing.UserId != currentUserId && !User.IsInRole("Admin"))
+            {
+                TempData["Notification"] = SweetAlertHelper.CreateNotification(
+                    "Unauthorized",
+                    "You can only edit your own auctions.",
+                    SweetAlertMessageType.error
+                );
+                return RedirectToAction(nameof(Index));
+            }
+
             if (existing.Status != "Scheduled" || existing.AuctionBid.Count > 0)
             {
                 TempData["Notification"] = SweetAlertHelper.CreateNotification(
@@ -267,6 +289,17 @@ namespace PokeLeague.Web.Controllers
                 TempData["Notification"] = SweetAlertHelper.CreateNotification(
                     "Auction not found",
                     $"No auction found with ID {id}.",
+                    SweetAlertMessageType.error
+                );
+                return RedirectToAction(nameof(Index));
+            }
+
+            var currentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            if (auction.UserId != currentUserId && !User.IsInRole("Admin"))
+            {
+                TempData["Notification"] = SweetAlertHelper.CreateNotification(
+                    "Unauthorized",
+                    "You can only cancel your own auctions.",
                     SweetAlertMessageType.error
                 );
                 return RedirectToAction(nameof(Index));

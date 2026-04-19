@@ -279,6 +279,9 @@ public partial class PokeLeagueContext : DbContext
                 .HasDefaultValue(true)
                 .HasColumnName("is_active");
             entity.Property(e => e.IsPaid).HasColumnName("is_paid");
+            entity.Property(e => e.PaymentDate)
+                .HasPrecision(0)
+                .HasColumnName("payment_date");
             entity.Property(e => e.PurchaseAmount)
                 .HasColumnType("decimal(12, 2)")
                 .HasColumnName("purchase_amount");

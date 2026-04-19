@@ -30,4 +30,6 @@ public partial class Auction
     public virtual PurchaseOrder? PurchaseOrder { get; set; }
 
     public virtual User User { get; set; } = null!;
+
+   
 }

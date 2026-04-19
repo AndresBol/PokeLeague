@@ -21,7 +21,23 @@
 
 <div class="container-sm mb-2">
 
-    <h3>@Html.DisplayFor(model => model.Card.Name)</h3>
+  
+
+        <h3 class="mb-0">
+            @Html.DisplayFor(model => model.Card.Name)
+        </h3>
+
+        @if (User.Identity.IsAuthenticated &&
+        User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value == Model.UserId.ToString())
+        {
+            <div class="d-flex justify-content-center mt-3">
+                <div class="alert alert-info text-center px-4 py-2" style="max-width: 500px; width: 100%;">
+                    <i class="bi bi-person-badge me-2"></i>
+                    <strong>You are the seller of this auction</strong>
+                </div>
+            </div>
+        }
+
 
     <div class="container-lg d-flex flex-column flex-lg-row justify-content-between align-items-start mt-5">
         <dl class="row">
@@ -91,10 +107,46 @@
                Total Bids:
             </dt>
             <dd class="col-sm-8">
-                <span class="badge bg-primary fs-6">
+                <span id="totalBids" class="badge bg-primary fs-6">
                     @Model.AuctionBid.Count
                 </span>
             </dd>
+
+            <h5 class="mb-3">
+                Current Price:
+                <span id="currentPrice" class="text-success fw-bold">
+                    $@(Model.AuctionBid.Any()
+                    ? Model.AuctionBid.Max(b => b.BidAmount)
+                    : Model.BasePrice)
+                </span>
+            </h5>
+
+            <div id="bidStatusContainer" class="mt-2 text-center"></div>
+
+            <h5 class="mb-3">
+                Time Remaining: 
+                <span id="auctionTimer" class ="fw-bold text-danger">
+                    Loading...
+                </span>
+            </h5>
+
+            <div class="mt-4 p-3 border rounded bg-light" style="max-width: 350px;">
+
+                <label for="bidAmount" class="form-label fw-bold">
+                    Place your bid
+                </label>
+
+                <div class="input-group">
+                    <span class="input-group-text">$</span>
+                    <input type="number" id="bidAmount" class="form-control" step="0.01" min="0" placeholder="Enter amount" />
+                </div>
+
+                <button id="btnBid"  class="btn btn-primary w-100 mt-3">
+                    <i class="bi bi-cash-coin me-2"></i>
+                    Place Bid
+                </button>
+
+            </div>
 
             <div class="mt-4">
                 <a asp-action="Bids"
@@ -103,6 +155,7 @@
                     View Bid History
                 </a>
             </div>
+
 
             </dl>
 
@@ -135,7 +188,35 @@
                     </button>
                 }
           </div>
+    </div>
 
+    <div class="mt-5">
+        <h4>Latest Bids</h4>
+
+        <table class="table table-striped table-sm">
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th class="text-center">Amount</th>
+                    <th class="text-center">Date</th>
+                </tr>
+            </thead>
+
+            <tbody id="bidsTable">
+                @foreach (var bid in Model.AuctionBid
+                .OrderByDescending(b => b.BidDate)
+                .Take(5))
+                {
+                    <tr>
+                        <td>@bid.User.Username</td>
+                        <td class="text-center">$ @bid.BidAmount.ToString("F2")</td>
+                        <td class="text-center">
+                            @bid.BidDate.ToString("dd/MM/yyyy HH:mm")
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
     </div>
 </div>
 
@@ -143,24 +224,322 @@
     <a asp-action="Index" class="btn btn-secondary align-items-center"><h3><i class="bi bi-arrow-return-left me-3"></i>Back to list</h3></a>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+
 @section Scripts {
+
+
     <script>
+
+        const currentUserId = parseInt('@(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0")');
+        const endDate = new Date("@Model.EndDate.ToString("yyyy-MM-ddTHH:mm:ss")");
+        const auctionId = @(Model.Id);
+        const minIncrease = @(Model.MinIncrease);
+        const auctionStatus = "@Model.Status";
+        const sellerID = @Model.UserId;
+
+        let isCurrentUserLeading = (currentUserId === @(Model.CurrentHighestBidUserId ?? 0));
+        let lastBidId = null;
+        let hasUserBid = @(Model.HasUserBid.ToString().ToLower());;
+        let totalBids = @Model.AuctionBid.Count;
+
+        const btn = document.getElementById("btnBid");
+        const input = document.getElementById("bidAmount");
+        const currentPriceElement = document.getElementById("currentPrice");
+        const bidsTable = document.getElementById("bidsTable");
+        const totalBidsElement = document.getElementById("totalBids");
+
+        updateBidStatus(isCurrentUserLeading);
+
+        function setupAuctionUI(status) {
+            switch (status) {
+                case "In Progress":
+                    btn.className = "btn btn-success w-100 mt-3";
+                    btn.innerText = "Place Bid";
+                    btn.disabled = false;
+                    input.disabled = false;
+                    break;
+
+                case "Scheduled":
+                    btn.className = "btn btn-warning w-100 mt-3";
+                    btn.innerText = "Starts Soon";
+                    btn.disabled = true;
+                    input.disabled = true;
+                    break;
+
+                case "Finished":
+                    btn.className = "btn btn-secondary w-100 mt-3";
+                    btn.innerText = "Auction Ended";
+                    btn.disabled = true;
+                    input.disabled = true;
+                    break;
+
+                case "Canceled":
+                    btn.className = "btn btn-danger w-100 mt-3";
+                    btn.innerText = "Auction Canceled";
+                    btn.disabled = true;
+                    input.disabled = true;
+                    break;
+            }
+        }
+
+        setupAuctionUI(auctionStatus);
+
+
+        if (currentUserId === sellerID) {
+            btn.disabled = true;
+            input.disabled = true;
+
+            btn.className = "btn btn-secondary w-100 mt-3";
+            btn.innerText = "You cannot bid on your own auction";
+        }
+
+        startAuctionTimer();
+
+        // SingalR
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/auctionHub")
+            .build();
+
+        connection.on("ReceiveBid", (bid) => {
+
+             totalBids++;
+             totalBidsElement.innerText = totalBids;
+
+            const formattedAmount = bid.bidAmount.toFixed(2);
+            const formattedDate = formatDate(new Date(bid.bidDate));
+            const isMine = bid.userId === currentUserId;
+
+            const previousLeader = isCurrentUserLeading;
+            const amINewLeader = bid.userId === currentUserId;
+
+
+            if (hasUserBid && previousLeader && !amINewLeader) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'You have been outbid!',
+                    text: `New bid: $${formattedAmount}`,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            }
+
+
+            if (amINewLeader && !previousLeader) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'You are winning!',
+                    text: `Your bid: $${formattedAmount}`,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            }
+
+            updateBidStatus(amINewLeader);
+            isCurrentUserLeading = amINewLeader;
+
+            lastBidId = bid.id;
+
+            const usernameDisplay = isMine ? "You" : bid.username;
+
+            const exists = bidsTable.querySelector(`tr[data-id="${bid.id}"]`);
+            if (exists) return;
+
+            const newRow = `
+                <tr class="${isMine ? 'table-success' : ''}" data-id="${bid.id}">
+                    <td>${usernameDisplay}</td>
+                    <td class="text-center">$ ${formattedAmount}</td>
+                    <td class="text-center">${formattedDate}</td>
+                </tr>
+            `;
+
+            bidsTable.insertAdjacentHTML("afterbegin", newRow);
+
+            const firstRow = bidsTable.querySelector("tr");
+            firstRow.classList.add("flash");
+            setTimeout(() => firstRow.classList.remove("flash"), 2000);
+
+            const rows = bidsTable.querySelectorAll("tr");
+            if (rows.length > 10) {
+                rows[rows.length - 1].remove();
+            }
+
+            currentPriceElement.innerText = `$ ${formattedAmount}`;
+        });
+
+        connection.start()
+            .then(() => connection.invoke("JoinAuctionGroup", auctionId.toString()))
+            .catch(err => console.error(err));
+
+        function formatDate(date) {
+            return date.toLocaleString("es-DO", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit"
+            });
+        }
+
         function confirmCancel() {
             Swal.fire({
-                title: 'Are you sure you want to cancel this auction?',
+                title: 'Are you sure?',
                 text: "This action cannot be undone.",
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Yes, cancel it!',
-                cancelButtonText: 'No, go back'
-            }).then((result) => {
+                confirmButtonText: 'Yes, cancel it!'
+            }).then(result => {
                 if (result.isConfirmed) {
-                    var form = document.getElementById('cancelForm');
-                    form.submit();
+                    document.getElementById('cancelForm').submit();
                 }
             });
         }
+
+        function startAuctionTimer() {
+
+            const timerElement = document.getElementById("auctionTimer");
+
+            function updateTimer() {
+                const now = new Date();
+                const diff = endDate - now;
+
+                if (diff <= 0) {
+                    timerElement.innerText = "00:00:00";
+                    setupAuctionUI("Finished");
+                    updateBidStatus(isCurrentUserLeading);
+                    clearInterval(interval);
+                    return;
+                }
+
+                const hours = Math.floor(diff / (1000 * 60 * 60));
+                const minutes = Math.floor((diff / (1000 * 60)) % 60);
+                const seconds = Math.floor((diff / 1000) % 60);
+
+                timerElement.innerText =
+                    `${String(hours).padStart(2, '0')}:` +
+                    `${String(minutes).padStart(2, '0')}:` +
+                    `${String(seconds).padStart(2, '0')}`;
+            }
+
+            updateTimer();
+            const interval = setInterval(updateTimer, 1000);
+        }
+
+        function isAuctionFinished() {
+            return new Date() > endDate;
+         }
+
+        
+        function updateBidStatus(isLeading) {
+
+            const container = document.getElementById("bidStatusContainer");
+
+            if (!hasUserBid) {
+                container.innerHTML = "";
+                return;
+             }
+
+           if (isAuctionFinished()) {
+
+            if (isLeading) {
+                container.innerHTML = `
+                    <span class="badge bg-primary fs-6 px-3 py-2">
+                        🎉 You won the auction
+                    </span>
+                `;
+                } else {
+                container.innerHTML = `
+                    <span class="badge bg-secondary fs-6 px-3 py-2">
+                        Auction ended – You lost
+                    </span>
+                `;
+                }
+
+            return;
+        }
+
+
+            if (isLeading) {
+                container.innerHTML = `
+                    <span class="badge bg-success fs-6 px-3 py-2">
+                        You are winning
+                    </span>
+                `;
+            } else {
+                container.innerHTML = `
+                    <span class="badge bg-danger fs-6 px-3 py-2">
+                        You have been outbid
+                    </span>
+                `;
+            }
+        }
+
+        // Incializacion del Evento
+        btn.addEventListener("click", async () => {
+
+            if (btn.disabled) return;
+
+            if (!currentUserId) {
+                return Swal.fire('Login required', 'You must be logged in.', 'warning');
+            }
+
+            if (auctionStatus !== "In Progress") {
+                return Swal.fire('Auction not active', 'Bidding is closed.', 'warning');
+            }
+
+            const amount = input.value;
+            const numericAmount = parseFloat(amount);
+
+            const currentPrice = parseFloat(
+                currentPriceElement.innerText.replace("$", "").trim()
+            );
+
+            if (!amount || numericAmount <= 0) {
+                return Swal.fire('Invalid amount', 'Enter a valid bid.', 'warning');
+            }
+
+            if (!/^\d+(\.\d{1,2})?$/.test(amount)) {
+                return Swal.fire('Invalid format', 'Max 2 decimals.', 'warning');
+            }
+
+            if (numericAmount < currentPrice + minIncrease) {
+                return Swal.fire(
+                    'Bid too low',
+                    `Minimum: $${(currentPrice + minIncrease).toFixed(2)}`,
+                    'warning'
+                );
+            }
+
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/Auction/CreateBid', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        auctionId,
+                        bidAmount: numericAmount
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    Swal.fire('Success', 'Bid placed!', 'success');
+                    input.value = "";
+
+                    hasUserBid = true;
+
+                } else {
+                    Swal.fire('Error', result.message, 'error');
+                }
+
+            } catch {
+                Swal.fire('Error', 'Connection failed.', 'error');
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
     </script>
 }

@@ -35,5 +35,10 @@ namespace PokeLeague.Application.DTOs
         public PurchaseOrderDTO? PurchaseOrder { get; set; }
         public ICollection<AuctionBidDTO> AuctionBid { get; set; } = new List<AuctionBidDTO>();
         public string Status { get; set; } = string.Empty;
+
+        public int? CurrentHighestBidUserId { get; set; }
+
+        public bool HasUserBid { get; set; }
+
     }
 }

@@ -16,6 +16,7 @@
   <img src="https://img.shields.io/badge/UI-ASP.NET%20Core%20MVC-green?logo=dotnet&logoColor=white" alt="ASP.NET Core MVC"/>
   <img src="https://img.shields.io/badge/ORM-Entity%20Framework%20Core-orange?logo=nuget&logoColor=white" alt="EF Core"/>
   <img src="https://img.shields.io/badge/CSS-Bootstrap%205-7952B3?logo=bootstrap&logoColor=white" alt="Bootstrap"/>
+  <img src="https://img.shields.io/badge/PDF-QuestPDF-yellow?logo=nuget&logoColor=black" alt="QuestPDF"/>
 </p>
 
 ---
@@ -40,6 +41,7 @@ This project was developed as the final assignment for the Programming VI course
 - **Category tagging**: Assign multiple categories to cards via a many-to-many relationship
 - **Smart form validation**: Server-side and client-side validation with SweetAlert2 notifications
 - **Soft-delete pattern**: All entities support logical activation/deactivation (`is_active` flag)
+- **Admin reports**: Admin-only reporting page with an interactive bar chart of bids per auction (Chart.js) with date range and status filters, plus a downloadable PDF report of winning bid amounts per card/auction (QuestPDF) featuring the PokeLeague logo
 - **Responsive UI**: Bootstrap 5 layout with Bootstrap Icons, Tom-Select enhanced dropdowns, and dark/light branding assets
 
 ## Tech Stack
@@ -51,6 +53,8 @@ This project was developed as the final assignment for the Programming VI course
 | Database      | Microsoft SQL Server 2022                     |
 | ORM           | Entity Framework Core 9.x                     |
 | Mapping       | AutoMapper 16.0.0                             |
+| PDF Reports   | QuestPDF 2026.2.3 (Community)                 |
+| Charts        | Chart.js (CDN)                                |
 | Frontend      | Bootstrap 5, Bootstrap Icons, jQuery          |
 | Dropdowns     | Tom-Select 2.4.3                              |
 | Notifications | SweetAlert2                                   |
@@ -64,14 +68,15 @@ The project follows a three-tier layered architecture with clear separation of c
 ```
 PokeLeague/
 ├── PokeLeague.Web/                    # Presentation Layer
-│   ├── Controllers/                   #   MVC Controllers (Home, User, Card, Auction, Login)
-│   ├── ViewModels/                    #   Login view model with validation
+│   ├── Controllers/                   #   MVC Controllers (Home, User, Card, Auction, Login, Report)
+│   ├── ViewModels/                    #   View models with validation (Login, Report)
 │   ├── Views/                         #   Razor views organized by feature
 │   │   ├── Home/                      #     Landing page
 │   │   ├── Card/                      #     Card CRUD + guided creation wizard
 │   │   ├── Auction/                   #     Auction CRUD + bid management
 │   │   ├── User/                      #     User profiles & management
 │   │   ├── Login/                     #     Login form & access denied page
+│   │   ├── Report/                    #     Admin-only reports (bar chart + PDF download)
 │   │   └── Shared/                    #     Layout, partials, error page
 │   ├── Util/                          #   SweetAlert2 notification helper
 │   ├── wwwroot/                       #   Static assets (CSS, JS, media, libraries)
@@ -79,8 +84,8 @@ PokeLeague/
 │
 ├── PokeLeague.Application/           # Business Logic Layer
 │   ├── Services/
-│   │   ├── Interfaces/               #   Service contracts (IServiceCard, IServiceAuction, etc.)
-│   │   └── Implementations/          #   Business rules, validation, orchestration
+│   │   ├── Interfaces/               #   Service contracts (IServiceCard, IServiceAuction, IServiceReport, etc.)
+│   │   └── Implementations/          #   Business rules, validation, orchestration, QuestPDF report generation
 │   ├── DTOs/                         #   Data Transfer Objects (12 record types)
 │   ├── Profiles/                     #   AutoMapper entity ↔ DTO profiles (12 profiles)
 │   ├── Config/                       #   AppConfig for crypto secret binding
@@ -99,14 +104,15 @@ PokeLeague/
 
 **Design Patterns:**
 
-| Pattern                   | Implementation                                                                                               |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| **Repository**            | Generic CRUD repositories per entity with EF Core, eager loading, and `AsNoTracking` for reads               |
-| **Service Layer**         | Business logic encapsulated in services with validation and auction status resolution                        |
-| **DTO / AutoMapper**      | 12 DTO records with display annotations, mapped via AutoMapper profiles for clean layer boundaries           |
-| **Dependency Injection**  | All repositories and services registered as Transient in `Program.cs`                                        |
-| **Cookie Authentication** | Claims-based identity with cookie auth, role-based `[Authorize]` attributes, and AES-CBC password encryption |
-| **Soft Delete**           | `is_active` flag on all entities for logical deletion without data loss                                      |
+| Pattern                   | Implementation                                                                                                                                                                                          |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Repository**            | Generic CRUD repositories per entity with EF Core, eager loading, and `AsNoTracking` for reads                                                                                                          |
+| **Service Layer**         | Business logic encapsulated in services with validation and auction status resolution                                                                                                                   |
+| **DTO / AutoMapper**      | 12 DTO records with display annotations, mapped via AutoMapper profiles for clean layer boundaries                                                                                                      |
+| **Dependency Injection**  | All repositories and services registered as Transient in `Program.cs`                                                                                                                                   |
+| **Cookie Authentication** | Claims-based identity with cookie auth, role-based `[Authorize]` attributes, and AES-CBC password encryption                                                                                            |
+| **Soft Delete**           | `is_active` flag on all entities for logical deletion without data loss                                                                                                                                 |
+| **Report Service**        | `IServiceReport` / `ServiceReport` encapsulates auction filtering logic and QuestPDF document generation; the controller resolves the logo path from `IWebHostEnvironment` and passes it to the service |
 
 ## RESTful API Integration - Guided Card Creation
 
@@ -147,6 +153,37 @@ The project also exposes **internal JSON endpoints** for AJAX-driven features in
 [HttpGet] GetCardsByUser()              // Returns logged-in user's cards as JSON for auction creation
 [HttpGet] HasActiveAuction(int cardId)  // Checks if a card already has an active auction
 ```
+
+## Admin Reports
+
+The `/Report` route is restricted to the **Admin** role. It provides two reports, both supporting filters for auction start/end date range and auction status (Scheduled, In Progress, Finished, Canceled):
+
+### Report 1: Bids per Auction (Bar Chart)
+
+Displayed on page load and refreshed on filter submission. Shows a Chart.js bar graph where each bar represents one auction and its height equals the total number of bids placed on it.
+
+| Aspect           | Detail                                                                                      |
+| ---------------- | ------------------------------------------------------------------------------------------- |
+| **Library**      | Chart.js (CDN)                                                                              |
+| **Chart type**   | Bar                                                                                         |
+| **Filters**      | Start date, End date, Status dropdown (All / Scheduled / In Progress / Finished / Canceled) |
+| **Default view** | All auctions loaded on first GET                                                            |
+| **Empty state**  | Warning alert shown when no auctions match the selected filters                             |
+
+### Report 2: Auction Sales PDF Download
+
+Clicking **Download Sales PDF** calls `GET /Report/DownloadPdf` with the current filter values as query parameters and returns a PDF file.
+
+| Aspect            | Detail                                                                                      |
+| ----------------- | ------------------------------------------------------------------------------------------- |
+| **Library**       | QuestPDF 2026.2.3 (Community license)                                                       |
+| **Page size**     | US Letter with 25 mm margins                                                                |
+| **Header**        | PokeLeague logo (`wwwroot/media/light/imagotipo.png`) + title + generation timestamp        |
+| **Table columns** | Auction, Card Name, Winner (username), Winning Bid Amount, End Date                         |
+| **Scope**         | Only **Finished** auctions that have at least one bid (i.e., cards that were actually sold) |
+| **Winning bid**   | Highest `AuctionBid.BidAmount` for each auction                                             |
+| **Footer**        | Total sales sum (bottom-right) + page numbers (bottom-right of each page)                   |
+| **Filters**       | Respects the same date range and status filters passed from the report page                 |
 
 ## Database Schema
 

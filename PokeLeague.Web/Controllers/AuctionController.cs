@@ -7,7 +7,6 @@ using PokeLeague.Web.Util;
 using System.Security.Claims;
 using Microsoft.AspNetCore.SignalR;
 using PokeLeague.Web.Hubs;
-using System.Security.Claims;
 
 
 namespace PokeLeague.Web.Controllers
@@ -32,16 +31,28 @@ namespace PokeLeague.Web.Controllers
 
         public async Task<IActionResult> Index()
         {
-            var autions = await _serviceAuction.ListAsync();
+            ICollection<AuctionDTO> autions;
+
+            if (User.IsInRole("Seller"))
+            {
+                var currentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                autions = await _serviceAuction.ListByUserIdAsync(currentUserId);
+            }
+            else
+            {
+                autions = await _serviceAuction.ListAsync();
+            }
 
             return View(autions);
         }
 
+        [Authorize(Roles = "Admin,Seller")]
         public async Task<IActionResult> Create()
         {
             await LoadCombosAsync();
             return View();
         }
+        [Authorize(Roles = "Admin,Seller")]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -91,6 +102,7 @@ namespace PokeLeague.Web.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin,Seller")]
         public async Task<IActionResult> Create(AuctionDTO auctionDto)
         {
             if (auctionDto.EndDate <= auctionDto.StartDate)
@@ -163,6 +175,11 @@ namespace PokeLeague.Web.Controllers
 
         public async Task<IActionResult> Bids(int id)
         {
+            if (!User.IsInRole("Admin"))
+            {
+                return Forbid();
+            }
+
             Console.WriteLine($"ID received: {id}");
             var auction = await _serviceAuction.FindByIdAsync(id);
             if (auction == null)
@@ -173,13 +190,37 @@ namespace PokeLeague.Web.Controllers
 
         public async Task<IActionResult> Active()
         {
-            var auctions = await _serviceAuction.ListActiveAsync();
+            ICollection<AuctionDTO> auctions;
+
+            if (User.IsInRole("Seller"))
+            {
+                var allAuctions = await _serviceAuction.ListActiveAsync();
+                var currentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                auctions = allAuctions.Where(a => a.UserId == currentUserId).ToList();
+            }
+            else
+            {
+                auctions = await _serviceAuction.ListActiveAsync();
+            }
+
             return View("Index", auctions);
         }
 
         public async Task<IActionResult> Closed()
         {
-            var auctions = await _serviceAuction.ListClosedAsync();
+            ICollection<AuctionDTO> auctions;
+
+            if (User.IsInRole("Seller"))
+            {
+                var allAuctions = await _serviceAuction.ListClosedAsync();
+                var currentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                auctions = allAuctions.Where(a => a.UserId == currentUserId).ToList();
+            }
+            else
+            {
+                auctions = await _serviceAuction.ListClosedAsync();
+            }
+
             return View("Index", auctions);
         }
 
@@ -211,6 +252,7 @@ namespace PokeLeague.Web.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin,Seller")]
         public async Task<IActionResult> Edit(int id, AuctionDTO auctionDto)
         {
             if (id != auctionDto.Id)
@@ -281,6 +323,7 @@ namespace PokeLeague.Web.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin,Seller")]
         public async Task<IActionResult> Cancel(int id)
         {
             var auction = await _serviceAuction.FindByIdAsync(id);
@@ -325,7 +368,7 @@ namespace PokeLeague.Web.Controllers
             return RedirectToAction(nameof(Details), new { id });
         }
         [HttpPost]
-        [Authorize]
+        [Authorize(Roles = "Admin,Buyer")]
         public async Task<IActionResult> CreateBid([FromBody] AuctionBidDTO auctionBidDTO)
         {
             try

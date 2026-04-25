@@ -67,6 +67,13 @@ namespace PokeLeague.Application.Services.Implementations
             return collection;
         }
 
+        public async Task<ICollection<CardDTO>> ListByUserIdAsync(int userId)
+        {
+            var cards = await _repository.ListByUserIdAsync(userId);
+            var collection = _mapper.Map<ICollection<CardDTO>>(cards);
+            return collection;
+        }
+
         public async Task UpdateAsync(CardDTO cardDto)
         {
             var card = _mapper.Map<Card>(cardDto);

@@ -10,6 +10,7 @@ namespace PokeLeague.Infraestructure.Repository.Interfaces
     public interface IRepositoryAuction
     {
         Task<ICollection<Auction>> ListAsync();
+        Task<ICollection<Auction>> ListByUserIdAsync(int userId);
         Task<Auction> FindByIdAsync(int id);
         Task<Auction?> FindActiveByCardIdAsync(int cardId);
         Task<int> AddAsync(Auction auction);

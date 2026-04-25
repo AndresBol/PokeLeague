@@ -65,6 +65,18 @@ namespace PokeLeague.Application.Services.Implementations
             return collection;
         }
 
+        public async Task<ICollection<AuctionDTO>> ListByUserIdAsync(int userId)
+        {
+            var auctions = await _repository.ListByUserIdAsync(userId);
+            var collection = _mapper.Map<ICollection<AuctionDTO>>(auctions);
+
+            foreach (var auction in collection)
+            {
+                auction.Status = ResolveStatusAsync(auction);
+            }
+            return collection;
+        }
+
         public async Task UpdateAsync(AuctionDTO auctionDto)
         {
             var auction = _mapper.Map<Auction>(auctionDto);

@@ -95,6 +95,32 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
             return auctions!;
         }
 
+        public async Task<ICollection<Auction>> ListByUserIdAsync(int userId)
+        {
+            var auctions = await _context.Set<Auction>()
+                .AsNoTracking()
+                .Include(a => a.User)
+                    .ThenInclude(u => u.Role)
+                .Include(a => a.Card)
+                    .ThenInclude(c => c.Set)
+                .Include(a => a.Card)
+                    .ThenInclude(c => c.Rarity)
+                .Include(a => a.Card)
+                    .ThenInclude(c => c.LanguageCodeNavigation)
+                .Include(a => a.Card)
+                    .ThenInclude(c => c.User)
+                .Include(a => a.Card)
+                    .ThenInclude(c => c.Image)
+                .Include(a => a.AuctionBid)
+                    .ThenInclude(ab => ab.User)
+                .Include(a => a.PurchaseOrder)
+                    .ThenInclude(po => po.User)
+                .Where(a => a.IsActive && a.UserId == userId)
+                .OrderBy(a => a.Id)
+                .ToListAsync();
+            return auctions!;
+        }
+
         public async Task UpdateAsync(Auction auction)
         {
             var strategy = _context.Database.CreateExecutionStrategy();

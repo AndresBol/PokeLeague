@@ -36,6 +36,9 @@
                         <li class="nav-item">
                             <a class="nav-link @(IsSelectedAction("User", "Index") ? "border-bottom border-warning border-2 text-dark" : "")" asp-area="" asp-controller="user" asp-action="Index"><i class="bi bi-people-fill me-1"></i> Users</a>
                         </li>
+                    }
+                    @if (User.IsInRole("Admin") || User.IsInRole("Seller"))
+                    {
                         <li class="nav-item">
                             <a class="nav-link @(IsSelectedAction("Card", "Index") ? "border-bottom border-warning border-2 text-dark" : "")" asp-area="" asp-controller="card" asp-action="Index"><i class="bi bi-card-heading me-1"></i> Cards</a>
                         </li>
@@ -43,13 +46,19 @@
                     <li class="nav-item">
                         <a class="nav-link @(IsSelectedAction("Auction", "Index") ? "border-bottom border-warning border-2 text-dark" : "")" asp-area="" asp-controller="Auction" asp-action="Index"><i class="bi bi-briefcase-fill me-1"></i> Auctions</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link @(IsSelectedAction("PurchaseOrder", "Index") ? "border-bottom border-warning border-2 text-dark" : "")" asp-area="" asp-controller="PurchaseOrder" asp-action="Index"><i class="bi bi-credit-card me-1"></i> Payments</a>
-                    </li>
+                    @if (User.IsInRole("Admin") || User.IsInRole("Buyer"))
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link @(IsSelectedAction("PurchaseOrder", "Index") ? "border-bottom border-warning border-2 text-dark" : "")" asp-area="" asp-controller="PurchaseOrder" asp-action="Index"><i class="bi bi-credit-card me-1"></i> Payments</a>
+                        </li>
+                    }
                 </ul>
                 <ul class="navbar-nav ms-auto gap-2 align-items-center">
                     @if (User.Identity != null && User.Identity.IsAuthenticated)
                     {
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="User" asp-action="EditProfile"><i class="bi bi-person-gear me-1"></i> My Profile</a>
+                        </li>
                         <li class="nav-item">
                             <span class="nav-link disabled text-dark"><i class="bi bi-person-fill me-1"></i>@User.Identity.Name</span>
                         </li>

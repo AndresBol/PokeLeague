@@ -8,7 +8,7 @@
 
 <div class="d-flex flex-row align-items-center justify-content-between">
     <h2>Auction Detail</h2>
-    @if (canEditOrCancel)
+    @if (canEditOrCancel && (User.IsInRole("Admin") || User.IsInRole("Seller")))
     {
         <div class="d-flex gap-2">
             <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-success"><i class="bi bi-pencil"></i> Edit Auction</a>
@@ -130,6 +130,8 @@
                 </span>
             </h5>
 
+            @if (!User.IsInRole("Seller"))
+            {
             <div class="mt-4 p-3 border rounded bg-light" style="max-width: 350px;">
 
                 <label for="bidAmount" class="form-label fw-bold">
@@ -147,7 +149,10 @@
                 </button>
 
             </div>
+            }
 
+            @if (User.IsInRole("Admin"))
+            {
             <div class="mt-4">
                 <a asp-action="Bids"
                    asp-route-id="@Model.Id"
@@ -155,6 +160,7 @@
                     View Bid History
                 </a>
             </div>
+            }
 
 
             </dl>

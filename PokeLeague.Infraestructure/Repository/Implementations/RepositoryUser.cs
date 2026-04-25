@@ -187,6 +187,26 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
             }
         }
 
+        public async Task UpdatePasswordAsync(int id, string passwordHash)
+        {
+            try
+            {
+                var user = await _context.Set<User>()
+                    .FirstOrDefaultAsync(u => u.Id == id);
+
+                if (user == null)
+                    throw new Exception($"User with ID {id} not found.");
+
+                user.PasswordHash = passwordHash;
+
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error updating password: {ex.Message}");
+            }
+        }
+
         public async Task ToggleBlockAsync(int id)
         {
             try

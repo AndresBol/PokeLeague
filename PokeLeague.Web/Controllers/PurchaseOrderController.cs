@@ -7,7 +7,7 @@ using System.Security.Claims;
 
 namespace PokeLeague.Web.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = "Admin,Buyer")]
     public class PurchaseOrderController : Controller
     {
         private readonly IServicePurchaseOrder _servicePurchaseOrder;

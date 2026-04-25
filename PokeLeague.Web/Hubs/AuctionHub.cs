@@ -1,7 +1,10 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 
+using Microsoft.AspNetCore.Authorization;
+
 namespace PokeLeague.Web.Hubs
 {
+    [Authorize]
     public class AuctionHub : Hub
     {
         public async Task JoinAuctionGroup(string auctionId) 

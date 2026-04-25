@@ -10,6 +10,7 @@ namespace PokeLeague.Application.Services.Interfaces
     public interface IServiceAuction
     {
         Task<ICollection<AuctionDTO>> ListAsync();
+        Task<ICollection<AuctionDTO>> ListByUserIdAsync(int userId);
         Task<AuctionDTO?> FindByIdAsync(int id);
         Task<int> AddAsync(AuctionDTO auctionDto);
         Task UpdateAsync(AuctionDTO auctionDto);

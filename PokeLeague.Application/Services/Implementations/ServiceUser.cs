@@ -75,6 +75,13 @@ namespace PokeLeague.Application.Services.Implementations
             await _repository.UpdateProfileAsync(id,username,email);
         }
 
+        public async Task UpdatePasswordAsync(int id, string newPassword)
+        {
+            string secret = _options.Value.Crypto.Secret;
+            string passwordEncrypted = Cryptography.Encrypt(newPassword, secret);
+            await _repository.UpdatePasswordAsync(id, passwordEncrypted);
+        }
+
         public async Task ToggleBlockAsync(int id) 
         {
             

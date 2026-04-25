@@ -10,6 +10,7 @@ namespace PokeLeague.Application.Services.Interfaces
     public interface IServiceCard
     {
         Task<ICollection<CardDTO>> ListAsync();
+        Task<ICollection<CardDTO>> ListByUserIdAsync(int userId);
         Task<CardDTO> FindByIdAsync(int id);
         Task<int> AddAsync(CardDTO cardDto);
         Task UpdateAsync(CardDTO cardDto);

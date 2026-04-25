@@ -78,6 +78,25 @@ namespace PokeLeague.Infraestructure.Repository.Implementations
             return cards!;
         }
 
+        public async Task<ICollection<Card>> ListByUserIdAsync(int userId)
+        {
+            var cards = await _context.Set<Card>()
+                .AsNoTracking()
+                .Include(c => c.User)
+                    .ThenInclude(u => u.Role)
+                .Include(c => c.Set)
+                .Include(c => c.Rarity)
+                .Include(c => c.LanguageCodeNavigation)
+                .Include(c => c.Image)
+                .Include(c => c.CategoryCard)
+                    .ThenInclude(cc => cc.Category)
+                .Include(c => c.Auction)
+                .Where(c => c.IsActive && c.UserId == userId)
+                .OrderBy(c => c.Id)
+                .ToListAsync();
+            return cards!;
+        }
+
         public async Task UpdateAsync(Card card)
         {
             var strategy = _context.Database.CreateExecutionStrategy();

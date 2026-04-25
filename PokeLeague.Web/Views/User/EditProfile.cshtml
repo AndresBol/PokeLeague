@@ -1,0 +1,55 @@
+@model PokeLeague.Application.DTOs.UserDTO
+
+@{
+    ViewData["Title"] = "My Profile";
+}
+
+<h2>My Profile</h2>
+
+<form asp-action="EditProfile" method="post">
+    <input type="hidden" asp-for="Id" />
+
+    <div class="mb-3">
+        <label asp-for="Username" class="form-label"></label>
+        <input asp-for="Username" class="form-control" />
+        <span asp-validation-for="Username" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Email" class="form-label"></label>
+        <input asp-for="Email" class="form-control" type="email" />
+        <span asp-validation-for="Email" class="text-danger"></span>
+    </div>
+
+    <hr />
+    <h5>Change Password <small class="text-muted">(optional)</small></h5>
+
+    <div class="mb-3">
+        <label for="newPassword" class="form-label">New Password</label>
+        <input type="password" id="newPassword" name="newPassword" class="form-control" autocomplete="new-password" placeholder="Leave blank to keep current password" />
+    </div>
+
+    <div class="mb-3">
+        <label for="confirmPassword" class="form-label">Confirm Password</label>
+        <input type="password" id="confirmPassword" name="confirmPassword" class="form-control" autocomplete="new-password" />
+    </div>
+
+    <button type="submit" class="btn btn-success">Save Changes</button>
+    <a asp-controller="Home" asp-action="Index" class="btn btn-secondary">Cancel</a>
+</form>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+
+    <script>
+        document.querySelector("form").addEventListener("submit", function (e) {
+            var newPwd = document.getElementById("newPassword").value;
+            var confirmPwd = document.getElementById("confirmPassword").value;
+
+            if (newPwd && newPwd !== confirmPwd) {
+                e.preventDefault();
+                Swal.fire("Validation Error", "Passwords do not match.", "warning");
+            }
+        });
+    </script>
+}

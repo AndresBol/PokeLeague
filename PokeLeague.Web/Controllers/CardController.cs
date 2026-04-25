@@ -9,7 +9,7 @@ using System.Security.Claims;
 
 namespace PokeLeague.Web.Controllers
 {
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Seller")]
     public class CardController : Controller
     {
         private readonly IServiceCard _serviceCard;
@@ -29,7 +29,18 @@ namespace PokeLeague.Web.Controllers
 
         public async Task<IActionResult> Index()
         {
-            var cards = await _serviceCard.ListAsync();
+            ICollection<CardDTO> cards;
+
+            if (User.IsInRole("Admin"))
+            {
+                cards = await _serviceCard.ListAsync();
+            }
+            else
+            {
+                var currentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                cards = await _serviceCard.ListByUserIdAsync(currentUserId);
+            }
+
             return View(cards);
         }
 
@@ -85,6 +96,16 @@ namespace PokeLeague.Web.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
+            if (!IsAuthorizedToModifyCard(card.UserId))
+            {
+                TempData["Notification"] = SweetAlertHelper.CreateNotification(
+                    "Unauthorized",
+                    "You can only edit your own cards.",
+                    SweetAlertMessageType.error
+                );
+                return RedirectToAction(nameof(Index));
+            }
+
             if(card.AuctionStatus == "In Progress") 
             {
                 TempData["Notification"] = SweetAlertHelper.CreateNotification(
@@ -109,7 +130,16 @@ namespace PokeLeague.Web.Controllers
 
         }
 
-        public void FormValidation(CardDTO cardDTO, List<IFormFile> files, List<int> selectedCategoryIds)
+        private bool IsAuthorizedToModifyCard(int cardUserId)
+        {
+            if (User.IsInRole("Admin"))
+                return true;
+
+            var currentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            return cardUserId == currentUserId;
+        }
+
+        public void FormValidation(CardDTO cardDTO, List<IFormFile> files, List<int> selectedCategoryIds, bool requireFiles = true)
         {
             if (string.IsNullOrWhiteSpace(cardDTO.Name))
             {
@@ -126,7 +156,7 @@ namespace PokeLeague.Web.Controllers
                 ModelState.AddModelError("selectedCategoryIds", "At least one category is required.");
             }
 
-            if (files == null || files.Count == 0)
+            if (requireFiles && (files == null || files.Count == 0))
             {
                 ModelState.AddModelError("files", "At least one image is required.");
             }
@@ -222,7 +252,7 @@ namespace PokeLeague.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit (CardDTO cardDTO,List<IFormFile> files, List<int> selectedCategoryIds)
         {
-            FormValidation(cardDTO, files, selectedCategoryIds);
+            FormValidation(cardDTO, files, selectedCategoryIds, requireFiles: false);
             if (!ModelState.IsValid)
             {
                 ViewBag.Notification = SweetAlertHelper.CreateNotification(
@@ -249,6 +279,16 @@ namespace PokeLeague.Web.Controllers
                         "Card not found",
                         $"No card found with ID {cardDTO.Id}.",
                         SweetAlertMessageType.error
+                );
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (!IsAuthorizedToModifyCard(existingCard.UserId))
+            {
+                TempData["Notification"] = SweetAlertHelper.CreateNotification(
+                    "Unauthorized",
+                    "You can only edit your own cards.",
+                    SweetAlertMessageType.error
                 );
                 return RedirectToAction(nameof(Index));
             }
@@ -281,19 +321,26 @@ namespace PokeLeague.Web.Controllers
             cardDTO.CategoryCard = categories;
 
             List<ImageDTO> images = [];
-            foreach (var file in files)
+            if (files != null && files.Count > 0)
             {
-                using var ms = new MemoryStream();
-                await file.CopyToAsync(ms);
-
-                images.Add(new ImageDTO
+                foreach (var file in files)
                 {
-                    CardId = cardDTO.Id,
-                    ImageData = ms.ToArray(),
-                    IsActive = true
-                });
+                    using var ms = new MemoryStream();
+                    await file.CopyToAsync(ms);
+
+                    images.Add(new ImageDTO
+                    {
+                        CardId = cardDTO.Id,
+                        ImageData = ms.ToArray(),
+                        IsActive = true
+                    });
+                }
+                cardDTO.Image = images;
             }
-            cardDTO.Image = images;
+            else
+            {
+                cardDTO.Image = existingCard.Image;
+            }
 
             await _serviceCard.UpdateAsync(cardDTO);
 
@@ -342,6 +389,16 @@ namespace PokeLeague.Web.Controllers
                     $"No card found with the ID {id}.",
                     SweetAlertMessageType.error
                     );
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (!IsAuthorizedToModifyCard(card.UserId))
+            {
+                TempData["Notification"] = SweetAlertHelper.CreateNotification(
+                    "Unauthorized",
+                    "You can only delete your own cards.",
+                    SweetAlertMessageType.error
+                );
                 return RedirectToAction(nameof(Index));
             }
 
@@ -396,6 +453,16 @@ namespace PokeLeague.Web.Controllers
                     $"No card found with ID {id}.",
                     SweetAlertMessageType.error
                     );
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (!IsAuthorizedToModifyCard(card.UserId))
+            {
+                TempData["Notification"] = SweetAlertHelper.CreateNotification(
+                    "Unauthorized",
+                    "You can only modify your own cards.",
+                    SweetAlertMessageType.error
+                );
                 return RedirectToAction(nameof(Index));
             }
 

@@ -12,12 +12,14 @@
         <a asp-action="Create" class="btn btn-primary">Simple Create</a>
     </div>
     <hr />
-    <div class="d-flex flex-row justify-content-start align-items-start gap-5">
+    <div class="d-flex flex-row justify-content-center align-items-start gap-5 px-5">
         <form asp-controller="Card" asp-action="Create" class="row g-3 w-100" method="post" enctype="multipart/form-data">
 
             @Html.AntiForgeryToken()
             <input type="hidden" asp-for="Name" id="hidden-card-name" />
             <input type="hidden" asp-for="RarityId" id="hidden-rarity-id" />
+            <span id="val-name" class="text-danger client-val-error"></span>
+            <span id="val-rarity" class="text-danger client-val-error"></span>
 
             <div class="input-group">
                 <div class="input-group-text"><i class="bi bi-translate"></i></div>
@@ -39,6 +41,7 @@
                 <div class="input-group-text"><i class="bi bi-box"></i></div>
                 <select class="form-select" id="set-select" name="SetId"></select>
                 <span asp-validation-for="SetId" class="text-danger"></span>
+                <span id="val-set" class="text-danger client-val-error"></span>
             </div>
             <div class="input-group" id="rarity-col" style="display: none;">
                 <div class="input-group-text"><i class="bi bi-gem"></i></div>
@@ -57,7 +60,7 @@
                     <div class="col-12">
                         <label asp-for="Description" class="form-label"></label>
                         <textarea asp-for="Description" class="form-control"></textarea>
-                        <span asp-validation-for="Description" class="text-danger"></span>
+                        <span asp-validation-for="Description" class="text-danger client-val-error"></span>
                     </div>
 
                     <div class="col-md-6">
@@ -70,7 +73,7 @@
 
                     <div class="col-md-6">
                         <label asp-for="Grade" class="form-label"></label>
-                        <input asp-for="Grade" class="form-control" type="number" min="1" max="10" />
+                        <input asp-for="Grade" class="form-control" type="number" min="1" max="10" step="0.1" />
                         <span asp-validation-for="Grade" class="text-danger"></span>
                     </div>
 
@@ -84,11 +87,12 @@
                                     var isChecked = selectedCategories != null && selectedCategories.Contains((int)cat.Id);
                                     <div class="form-check">
                                         <input type="checkbox"
+                                               id="cat-@cat.Id"
                                                name="selectedCategoryIds"
                                                value="@cat.Id"
                                                class="form-check-input"
-                                               checked="@isChecked" />
-                                        <label class="form-check-label">@cat.Name</label>
+                                               @(isChecked ? "checked" : "") />
+                                        <label class="form-check-label" for="cat-@cat.Id">@cat.Name</label>
                                     </div>
                                 }
                             }
@@ -97,7 +101,7 @@
                                 <p class="text-danger">No categories available</p>
                             }
                         </div>
-                        <span data-valmsg-for="selectedCategoryIds" class="text-danger"></span>
+                        <span data-valmsg-for="selectedCategoryIds" class="text-danger client-val-error"></span>
                     </div>
 
                     <div class="col-12">
@@ -110,21 +114,24 @@
                             <span id="fileNames" class="ms-2 text-muted"></span>
                             <div id="previewContainer" class="d-flex flex-wrap gap-3 mt-3"></div>
                         </div>
-                        <span data-valmsg-for="files" class="text-danger"></span>
+                        <span data-valmsg-for="files" class="text-danger client-val-error"></span>
                     </div>
 
                 </div>
 
             </div>
-            <div class="d-flex flex-row justify-content-around">
-                <a asp-action="Index" class="btn btn-secondary"><i class="bi bi-x-lg me-2"></i> Cancel</a>
-                <button type="submit" class="btn btn-success"><i class="bi bi-floppy2-fill me-2"></i> Save</button>
+            <div class="row gap-5 mt-5">
+                <a asp-action="Index" class="btn btn-secondary col"><i class="bi bi-x-lg me-2"></i> Cancel</a>
+                <button type="submit" id="btn-save" class="btn btn-success col" style="display: none;"><i class="bi bi-floppy2-fill me-2"></i> Save</button>
             </div>
         </form>
 
-        <div id="card-content">
+        <div id="card-content" class="d-flex flex-column justify-content-start align-items-stretch gap-2">
+            <h4 id="serie-title" class="card text-dark bg-warning border-2 text-center" style="display: none;">Serie</h4>
             <img id="serie-image" class="flex-image" loading="eager" style="display: none;">
+            <h4 id="set-title" class="card text-dark bg-warning border-2 text-center mt-4" style="display: none;">Set</h4>
             <img id="set-image" class="flex-image" loading="eager" style="display: none;">
+            <h4 id="card-title" class="card text-dark bg-warning border-2 text-center mt-4" style="display: none;">Card</h4>
             <img id="card-image" class="flex-image" loading="eager" style="display: none;">
         </div>
     </div>
@@ -158,8 +165,12 @@
         const imgSerie = document.getElementById('serie-image');
         const imgSet = document.getElementById('set-image');
         const imgCard = document.getElementById('card-image');
+        const titleSerie = document.getElementById('serie-title');
+        const titleSet = document.getElementById('set-title');
+        const titleCard = document.getElementById('card-title');
         const hiddenName = document.getElementById('hidden-card-name');
         const hiddenRarity = document.getElementById('hidden-rarity-id');
+        const btnSave = document.getElementById('btn-save');
 
         let selectedLanguageCode = '';
         let selectedSerieId = '';
@@ -198,29 +209,33 @@
 
         function resetFrom(level) {
             const cascade = [
-                { ts: setSelect, col: setCol, img: imgSet },
-                { ts: raritySelect, col: rarityCol, img: null },
-                { ts: cardSelect, col: cardCol, img: imgCard },
+                { ts: setSelect, col: setCol, img: imgSet, title: titleSet },
+                { ts: raritySelect, col: rarityCol, img: null, title: null },
+                { ts: cardSelect, col: cardCol, img: imgCard, title: titleCard },
             ];
 
             for (let i = level; i < cascade.length; i++) {
                 resetSelect(cascade[i].ts);
                 cascade[i].col.style.display = 'none';
                 if (cascade[i].img) cascade[i].img.style.display = 'none';
+                if (cascade[i].title) cascade[i].title.style.display = 'none';
             }
 
             hiddenName.value = '';
             hiddenRarity.value = '';
             cardDetails.style.display = 'none';
+            btnSave.style.display = 'none';
         }
 
-        function showImage(img, url, alt) {
+        function showImage(img, url, alt, title) {
             if (!url) {
                 img.style.display = 'none';
+                if (title) title.style.display = 'none';
             } else {
                 img.src = `${url}.png`;
                 img.alt = alt;
                 img.style.display = '';
+                if (title) title.style.display = '';
             }
         }
 
@@ -230,6 +245,7 @@
 
             resetSelect(serieSelect);
             imgSerie.style.display = 'none';
+            titleSerie.style.display = 'none';
             serieCol.style.display = 'none';
             resetFrom(0);
 
@@ -253,7 +269,7 @@
             try {
                 const res = await apiFetch(`${API_BASE}/${selectedLanguageCode}/series/${selectedSerieId}`);
                 const serie = await res.json();
-                showImage(imgSerie, serie.logo, `${serie.name} Logo`);
+                showImage(imgSerie, serie.logo, `${serie.name} Logo`, titleSerie);
                 await LoadSetSelect();
             } catch {
                 window.location.href = CREATE_URL;
@@ -267,7 +283,7 @@
             try {
                 const res = await apiFetch(`${API_BASE}/${selectedLanguageCode}/sets/${selectedSetId}`);
                 const set = await res.json();
-                showImage(imgSet, set.logo, `${set.name} Logo`);
+                showImage(imgSet, set.logo, `${set.name} Logo`, titleSet);
                 await LoadRaritySelect();
             } catch {
                 window.location.href = CREATE_URL;
@@ -285,9 +301,11 @@
 
             if (!selectedCardId) {
                 imgCard.style.display = 'none';
+                titleCard.style.display = 'none';
                 hiddenName.value = '';
                 hiddenRarity.value = '';
                 cardDetails.style.display = 'none';
+                btnSave.style.display = 'none';
                 return;
             }
 
@@ -308,13 +326,16 @@
                     imgCard.src = `${card.image}/high.png`;
                     imgCard.alt = card.name;
                     imgCard.style.display = '';
+                    titleCard.style.display = '';
                 } else {
                     imgCard.style.display = 'none';
+                    titleCard.style.display = 'none';
                 }
 
                 hiddenName.value = card.name ?? '';
                 hiddenRarity.value = enCard.rarity ?? '';
                 cardDetails.style.display = '';
+                btnSave.style.display = '';
             } catch {
                 window.location.href = CREATE_URL;
             }
@@ -430,6 +451,55 @@
                 window.location.href = CREATE_URL;
             }
         }
+
+        document.querySelector('form').addEventListener('submit', function (e) {
+            let isValid = true;
+
+            document.querySelectorAll('.client-val-error').forEach(el => el.textContent = '');
+
+            const nameVal = hiddenName.value.trim();
+            if (!nameVal) {
+                document.getElementById('val-name').textContent = 'Please select a card.';
+                isValid = false;
+            }
+
+            const rarityVal = hiddenRarity.value.trim();
+            if (!rarityVal) {
+                document.getElementById('val-rarity').textContent = 'Please select a card with a rarity.';
+                isValid = false;
+            }
+
+            const setIdInput = document.querySelector('[name="SetId"]');
+            if (!setIdInput || !setIdInput.value.trim()) {
+                document.getElementById('val-set').textContent = 'Please select a set.';
+                isValid = false;
+            }
+
+            const descriptionEl = document.getElementById('Description');
+            if (descriptionEl) {
+                const desc = descriptionEl.value.trim();
+                if (!desc || desc.length < 20) {
+                    document.querySelector('[data-valmsg-for="Description"]').textContent = 'Description must be at least 20 characters.';
+                    isValid = false;
+                }
+            }
+
+            const checkedCats = document.querySelectorAll('input[name="selectedCategoryIds"]:checked');
+            if (checkedCats.length === 0) {
+                document.querySelector('[data-valmsg-for="selectedCategoryIds"]').textContent = 'At least one category is required.';
+                isValid = false;
+            }
+
+            const fileInput = document.getElementById('fileInput');
+            if (!fileInput || fileInput.files.length === 0) {
+                document.querySelector('[data-valmsg-for="files"]').textContent = 'At least one image is required.';
+                isValid = false;
+            }
+
+            if (!isValid) {
+                e.preventDefault();
+            }
+        });
 
         async function LoadCardSelect() {
             cardCol.style.display = '';

@@ -159,6 +159,7 @@ namespace PokeLeague.Web.Controllers
                 ViewBag.SelectedCategories = selectedCategoryIds;
 
                 await LoadCombosAsync();
+
                 return View(cardDTO);
             }
 

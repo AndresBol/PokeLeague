@@ -317,6 +317,7 @@
         updateBidStatus(isCurrentUserLeading);
 
         function setupAuctionUI(status) {
+            if (!btn || !input) return;
             switch (status) {
                 case "In Progress":
                     btn.className = "btn btn-success w-100 mt-3";
@@ -351,7 +352,7 @@
         setupAuctionUI(auctionStatus);
 
 
-        if (currentUserId === sellerID) {
+        if (currentUserId === sellerID && btn && input) {
             btn.disabled = true;
             input.disabled = true;
 
@@ -551,6 +552,7 @@
     
 
         // Incializacion del Evento
+        if (btn) {
         btn.addEventListener("click", async () => {
 
             if (btn.disabled) return;
@@ -616,6 +618,7 @@
                 btn.disabled = false;
             }
         });
+        }
 
     </script>
 }

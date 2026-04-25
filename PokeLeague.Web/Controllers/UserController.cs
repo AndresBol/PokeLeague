@@ -1,7 +1,10 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PokeLeague.Application.DTOs;
 using PokeLeague.Application.Services.Interfaces;
+using PokeLeague.Web.Util;
 using System.Security.Claims;
 
 namespace PokeLeague.Web.Controllers
@@ -117,7 +120,15 @@ namespace PokeLeague.Web.Controllers
                 await _serviceUser.UpdatePasswordAsync(user.Id, newPassword);
             }
 
-            return RedirectToAction("EditProfile");
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+
+            TempData["Notification"] = SweetAlertHelper.CreateNotification(
+                "Profile Updated",
+                "Your profile was updated successfully. Please log in again.",
+                SweetAlertMessageType.success
+            );
+
+            return RedirectToAction("Index", "Login");
         }
     }
 }

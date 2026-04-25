@@ -166,9 +166,18 @@ namespace PokeLeague.Web.Controllers
             var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
             int currentUserId = int.Parse(userIdClaim!);
 
+            if (User.IsInRole("Seller") && auction.UserId != currentUserId)
+            {
+                TempData["Notification"] = SweetAlertHelper.CreateNotification(
+                    "Unauthorized",
+                    "You can only view details of your own auctions.",
+                    SweetAlertMessageType.error
+                );
+                return RedirectToAction(nameof(Index));
+            }
+
             auction.HasUserBid = auction.AuctionBid
                 .Any(b => b.UserId == currentUserId);
-
 
             return View(auction);
         }

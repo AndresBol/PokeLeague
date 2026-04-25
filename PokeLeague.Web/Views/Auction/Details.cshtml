@@ -290,16 +290,16 @@
     <script>
 
         const currentUserId = parseInt('@(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0")');
-        const endDate = new Date("@Model.EndDate.ToString("yyyy-MM-ddTHH:mm:ss")");
-        const auctionId = @(Model.Id);
-        const minIncrease = @(Model.MinIncrease);
+        const endDate = new Date('@Model.EndDate.ToString("yyyy-MM-ddTHH:mm:ss")');
+        const auctionId = @Json.Serialize(Model.Id);
+        const minIncrease = @Json.Serialize(Model.MinIncrease);
         const auctionStatus = "@Model.Status";
-        const sellerID = @Model.UserId;
+        const sellerID = @Json.Serialize(Model.UserId);
 
-        let isCurrentUserLeading = (currentUserId === @(Model.CurrentHighestBidUserId ?? 0));
+        let isCurrentUserLeading = (currentUserId === @Json.Serialize(Model.CurrentHighestBidUserId ?? 0));
         let lastBidId = null;
-        let hasUserBid = @(Model.HasUserBid.ToString().ToLower());;
-        let totalBids = @Model.AuctionBid.Count;
+        let hasUserBid = @Json.Serialize(Model.HasUserBid);
+        let totalBids = @Json.Serialize(Model.AuctionBid.Count);
 
 
         const btn = document.getElementById("btnBid");

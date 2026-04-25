@@ -1,0 +1,168 @@
+@model PokeLeague.Web.ViewModels.ViewModelReport
+
+@{
+    ViewData["Title"] = "Reports";
+    var etiquetasJson = System.Text.Json.JsonSerializer.Serialize(Model.Etiquetas);
+    var valoresJson = System.Text.Json.JsonSerializer.Serialize(Model.Valores);
+}
+
+<div class="container py-4">
+    <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-header bg-warning text-black rounded-top-4 d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">
+                <i class="bi bi-bar-chart-line me-2"></i>Auction Reports
+            </h4>
+            <a class="btn btn-light btn-sm"
+               href="@Url.Action("DownloadPdf", "Report", new { startDate = Model.StartDate?.ToString("yyyy-MM-dd"), endDate = Model.EndDate?.ToString("yyyy-MM-dd"), status = Model.Status })">
+                <i class="bi bi-file-earmark-pdf-fill me-1 text-danger"></i>
+                Download Sales PDF
+            </a>
+        </div>
+
+        <div class="card-body p-4">
+            <form class="row g-3 align-items-end"
+                  asp-action="Index"
+                  asp-controller="Report"
+                  method="post">
+                @Html.AntiForgeryToken()
+
+                <div class="col-md-3">
+                    <label asp-for="StartDate" class="form-label fw-semibold"></label>
+                    <input asp-for="StartDate"
+                           type="date"
+                           class="form-control" />
+                </div>
+
+                <div class="col-md-3">
+                    <label asp-for="EndDate" class="form-label fw-semibold"></label>
+                    <input asp-for="EndDate"
+                           type="date"
+                           class="form-control" />
+                </div>
+
+                <div class="col-md-3">
+                    <label asp-for="Status" class="form-label fw-semibold"></label>
+                    <select asp-for="Status" class="form-select">
+                        <option value="">All Statuses</option>
+                        <option value="Scheduled">Scheduled</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Finished">Finished</option>
+                        <option value="Canceled">Canceled</option>
+                    </select>
+                </div>
+
+                <div class="col-md-3 d-grid">
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-search me-2"></i>Search
+                    </button>
+                </div>
+            </form>
+
+            @if (!string.IsNullOrWhiteSpace(Model.Mensaje))
+            {
+                <div class="alert alert-warning mt-4" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    @Model.Mensaje
+                </div>
+            }
+
+            @if (Model.TieneDatos)
+            {
+                <div class="mt-4">
+                    <div class="chart-container" style="position: relative; min-height: 420px;">
+                        <canvas id="bidsChart"></canvas>
+                    </div>
+                </div>
+            }
+            else if (Model.Mensaje == null)
+            {
+                <div class="mt-4 text-muted">
+                    <i class="bi bi-info-circle me-2"></i>
+                    No auction data available to display.
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        const etiquetas = @Html.Raw(etiquetasJson);
+        const valores = @Html.Raw(valoresJson);
+
+        let chart = null;
+
+        document.addEventListener("DOMContentLoaded", function () {
+            if (!etiquetas || !valores || valores.length === 0) {
+                return;
+            }
+
+            const ctx = document.getElementById("bidsChart");
+
+            if (chart) {
+                chart.destroy();
+            }
+
+            chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: etiquetas,
+                    datasets: [{
+                        label: '@Model.TituloGrafico',
+                        data: valores,
+                        backgroundColor: 'rgba(25, 135, 84, 0.4)',
+                        borderColor: 'rgba(25, 135, 84, 1)',
+                        borderWidth: 1,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        title: {
+                            display: true,
+                            text: '@Model.TituloGrafico'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    return ' Bids: ' + context.raw;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1,
+                                callback: function (value) {
+                                    if (Number.isInteger(value)) {
+                                        return value;
+                                    }
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Number of Bids'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Auction'
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+}

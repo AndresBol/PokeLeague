@@ -36,6 +36,9 @@
                         <li class="nav-item">
                             <a class="nav-link @(IsSelectedAction("User", "Index") ? "border-bottom border-warning border-2 text-dark" : "")" asp-area="" asp-controller="user" asp-action="Index"><i class="bi bi-people-fill me-1"></i> Users</a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link @(IsSelectedAction("Report", "Index") ? "border-bottom border-warning border-2 text-dark" : "")" asp-area="" asp-controller="Report" asp-action="Index"><i class="bi bi-bar-chart-line me-1"></i> Reports</a>
+                        </li>
                     }
                     @if (User.IsInRole("Admin") || User.IsInRole("Seller"))
                     {

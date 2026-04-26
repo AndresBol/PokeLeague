@@ -370,6 +370,16 @@ namespace PokeLeague.Web.Controllers
                 return NotFound();
             }
 
+            if (!IsAuthorizedToModifyCard(card.UserId))
+            {
+                TempData["Notification"] = SweetAlertHelper.CreateNotification(
+                    "Unauthorized",
+                    "You can only view details of your own cards.",
+                    SweetAlertMessageType.error
+                );
+                return RedirectToAction(nameof(Index));
+            }
+
             return View(card);
         }
 

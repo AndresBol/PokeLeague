@@ -35,6 +35,14 @@ namespace PokeLeague.Application.Services.Implementations
             return id;
         }
 
+        public async Task<int> CreateAsync(UserDTO userDto, string plainPassword)
+        {
+            string secret = _options.Value.Crypto.Secret;
+            userDto = userDto with { PasswordHash = Cryptography.Encrypt(plainPassword, secret) };
+            var user = _mapper.Map<User>(userDto);
+            return await _repository.AddAsync(user);
+        }
+
         public async Task<UserDTO> FindByIdAsync(int id)
         {
             var user = await _repository.FindByIdAsync(id);

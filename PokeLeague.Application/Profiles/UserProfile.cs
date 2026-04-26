@@ -12,6 +12,7 @@ namespace PokeLeague.Application.Profiles
 
             CreateMap<UserDTO, User>()
                 .ForMember(dest => dest.Id, orig => orig.MapFrom(o => o.Id))
+                .ForMember(dest => dest.RoleId, orig => orig.MapFrom(o => o.Role.Id))
                 .ForMember(dest => dest.Username, orig => orig.MapFrom(o => o.Username))
                 .ForMember(dest => dest.Email, orig => orig.MapFrom(o => o.Email))
                 .ForMember(dest => dest.PasswordHash, orig => orig.MapFrom(o => o.PasswordHash))

@@ -13,10 +13,12 @@ namespace PokeLeague.Web.Controllers
     public class UserController : Controller
     {
         private readonly IServiceUser _serviceUser;
+        private readonly IServiceRole _serviceRole;
 
-        public UserController(IServiceUser serviceUser)
+        public UserController(IServiceUser serviceUser, IServiceRole serviceRole)
         {
             _serviceUser = serviceUser;
+            _serviceRole = serviceRole;
         }
 
         [Authorize(Roles = "Admin")]
@@ -24,6 +26,58 @@ namespace PokeLeague.Web.Controllers
         {
             var users = await _serviceUser.ListAsync();
             return View(users);
+        }
+
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Create()
+        {
+            ViewBag.Roles = await _serviceRole.ListAsync();
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Create(UserDTO user, string password)
+        {
+            if (string.IsNullOrWhiteSpace(user.Username))
+                ModelState.AddModelError("Username", "Username is required.");
+
+            if (string.IsNullOrWhiteSpace(user.Email))
+                ModelState.AddModelError("Email", "Email is required.");
+
+            if (string.IsNullOrWhiteSpace(password))
+                ModelState.AddModelError("password", "Password is required.");
+            else if (password.Length < 6 || password.Length > 15)
+                ModelState.AddModelError("password", "Password must be between 6 and 15 characters.");
+
+            if (user.Role == null || user.Role.Id == 0)
+                ModelState.AddModelError("Role.Id", "Please select a role.");
+
+            if (!ModelState.IsValid)
+            {
+                ViewBag.Roles = await _serviceRole.ListAsync();
+                ViewBag.Notification = SweetAlertHelper.CreateNotification(
+                    "Validation errors",
+                    "Please complete all required fields.",
+                    SweetAlertMessageType.warning
+                );
+                return View(user);
+            }
+
+            user.IsActive = true;
+            user.IsBlocked = false;
+            user.SignupDate = DateOnly.FromDateTime(DateTime.Now);
+
+            var id = await _serviceUser.CreateAsync(user, password);
+
+            TempData["Notification"] = SweetAlertHelper.CreateNotification(
+                "User created",
+                "The user was created successfully.",
+                SweetAlertMessageType.success
+            );
+
+            return RedirectToAction(nameof(Details), new { id });
         }
 
         [Authorize(Roles = "Admin")]
